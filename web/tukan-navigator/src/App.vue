@@ -1,11 +1,18 @@
 <template>
   <v-app>
     <v-main>
-      <router-view />
+      <Graph></Graph>
     </v-main>
   </v-app>
 </template>
 
-<script setup>
-  //
+<script>
+import Graph from './components/Graph.vue';
+
+export default {
+  name: 'App',
+  components: {
+    Graph,
+  },
+};
 </script>
