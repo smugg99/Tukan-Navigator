@@ -1,12 +1,12 @@
 <template>
   <v-container>
     <v-row>
-      <v-btn @click="setMode('pan')">Pan</v-btn>
-      <v-btn @click="setMode('drag')">Drag</v-btn>
-      <v-btn @click="setMode('add')">Add Node</v-btn>
-      <v-btn @click="setMode('remove')">Remove Node/Edge</v-btn>
-      <v-btn @click="setMode('edit')">Edit Node/Edge</v-btn>
-      <v-btn @click="setMode('addEdge')">Add Edge</v-btn>
+      <v-btn :class="{ 'v-btn--active': mode === 'pan' }" @click="setMode('pan')">Pan</v-btn>
+      <v-btn :class="{ 'v-btn--active': mode === 'drag' }" @click="setMode('drag')">Drag</v-btn>
+      <v-btn :class="{ 'v-btn--active': mode === 'add' }" @click="setMode('add')">Add Node</v-btn>
+      <v-btn :class="{ 'v-btn--active': mode === 'remove' }" @click="setMode('remove')">Remove Node/Edge</v-btn>
+      <v-btn :class="{ 'v-btn--active': mode === 'edit' }" @click="setMode('edit')">Edit Node/Edge</v-btn>
+      <v-btn :class="{ 'v-btn--active': mode === 'addEdge' }" @click="setMode('addEdge')">Add Edge</v-btn>
     </v-row>
     <svg
       ref="svg"
@@ -192,6 +192,11 @@ export default {
         if (newId && !this.findNode(newId)) {
           this.addNode(newId, x, y);
         }
+      } else {
+        if(this.mode !== 'addEdge') {
+          this.selectedNodeId = null;
+        }
+        this.edgeStartNode = null;
       }
     },
     addNode(id, x, y) {
@@ -232,6 +237,7 @@ export default {
       this.isPanning = false;
       this.draggingNodeId = null;
       this.edgeStartNode = null;
+      this.selectedNodeId = null;
     },
   }
 };
@@ -243,5 +249,9 @@ export default {
   cursor: move;
   transition: transform 0.1s ease;
   transform-origin: 0 0;
+}
+.v-btn--active {
+  background-color: #1976D2 !important;
+  color: white !important;
 }
 </style>
