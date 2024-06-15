@@ -1,32 +1,53 @@
 <template>
   <g v-if="from && to" @click="selectEdge" :class="{ 'highlighted': highlighted }">
+    <!-- Define a mask to create a cutout effect -->
+    <mask :id="'mask_' + edge.id">
+      <!-- Rectangle to cover the entire area -->
+      <rect width="100%" height="100%" fill="white" />
+      <!-- Circle to cut through the line -->
+      <circle
+        :cx="(from.x + to.x) / 2"
+        :cy="(from.y + to.y) / 2"
+        r="15"
+        fill="black"
+      />
+    </mask>
+    <!-- Apply the mask to the line -->
     <line
       :x1="from.x"
       :y1="from.y"
       :x2="to.x"
       :y2="to.y"
       stroke="black"
+      stroke-dasharray="5,5"
       cursor="pointer"
       :class="{ 'edge-highlighted': highlighted }"
+      :mask="'url(#mask_' + edge.id + ')'"
     />
-    <g class="clickable-text">
-      <rect
-        :x="(from.x + to.x) / 2 - 25"
-        :y="(from.y + to.y) / 2 - 15"
-        width="50"
-        height="30"
-        fill="transparent"
-        cursor="pointer"
-      />
-      <text
-        :x="(from.x + to.x) / 2"
-        :y="(from.y + to.y) / 2"
-        text-anchor="middle"
-        fill="black"
-        cursor="pointer"
-        :class="{ 'edge-highlighted': highlighted }"
-      >{{ edge.weight }}</text>
-    </g>
+    <!-- Background rectangle for text -->
+    <rect
+      :x="(from.x + to.x) / 2 - 25"
+      :y="(from.y + to.y) / 2 - 15"
+      width="50"
+      height="30"
+      fill="transparent"
+      cursor="pointer"
+      class="rect-clickable"
+    />
+    <!-- Text with adjusted size -->
+    <text
+      :x="(from.x + to.x) / 2"
+      :y="(from.y + to.y) / 2"
+      text-anchor="middle"
+      fill="black"
+      cursor="pointer"
+      :class="{ 'edge-highlighted': highlighted }"
+      dominant-baseline="central"
+      font-size="16px"
+      font-weight="bold"
+    >
+      {{ edge.weight }}
+    </text>
   </g>
 </template>
 
@@ -50,22 +71,18 @@ export default {
 line {
   cursor: pointer;
   user-select: none;
-  stroke-width: 6px;
+  stroke-width: 2px;
   transition: stroke 0.3s ease;
 }
 
 line.edge-highlighted {
   stroke: orange;
-  stroke-width: 6px;
 }
 
 text {
   cursor: pointer;
   user-select: none;
   transition: fill 0.3s ease;
-  position: relative;
-  z-index: 1;
-  text-align: center; /* Add this line to center the text */
 }
 
 text.edge-highlighted {
@@ -73,10 +90,6 @@ text.edge-highlighted {
 }
 
 .rect-clickable {
-  cursor: pointer;
-}
-
-.highlighted {
   cursor: pointer;
 }
 </style>
