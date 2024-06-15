@@ -34,7 +34,7 @@ export default {
 <style scoped>
 line {
   cursor: pointer;
-  user-select: none;
+  /* user-select: none; */
 }
 
 text {

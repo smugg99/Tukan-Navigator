@@ -12,7 +12,7 @@
       ref="svg"
       :width="width"
       :height="height"
-      class="graph-svg"
+      :class="{'graph-svg': true, 'pan-mode': mode === 'pan', 'default-mode': mode !== 'pan'}"
       @mousedown="startInteraction"
       @mouseup="stopInteraction"
       @mouseleave="stopInteraction"
@@ -35,7 +35,8 @@
           :id="node.id"
           :x="node.x"
           :y="node.y"
-          :selected="node.id === selectedNodeId"
+          :selected="node.id === selectedNodeId || node.id === edgeStartNode"
+          :mode="mode"
           @select="selectNode"
           @mousedown.stop="startNodeDrag($event, node.id)"
         />
@@ -111,23 +112,22 @@ export default {
       } else if (this.mode === 'addEdge') {
         if (!this.edgeStartNode) {
           this.edgeStartNode = id;
+          this.selectedNodeId = id;
         } else {
-          const existingEdge = this.edges.find(edge => 
-            (edge.from === this.edgeStartNode && edge.to === id) ||
-            (edge.from === id && edge.to === this.edgeStartNode)
-          );
-          if (!existingEdge && this.edgeStartNode !== id) {
+          if (this.edgeStartNode !== id) {
             const weight = prompt('Enter weight for new edge');
             if (weight) {
               this.addEdge(this.edgeStartNode, id, parseInt(weight));
               this.edgeStartNode = null;
+              this.selectedNodeId = null;
             }
           } else {
-            alert('An edge already exists between these nodes.');
+            alert('Cannot connect a node to itself. Select a different node.');
             this.edgeStartNode = null;
+            this.selectedNodeId = null;
           }
         }
-      } else {
+      } else if (this.mode === 'pan' || this.mode === 'drag') {
         this.selectedNodeId = id;
       }
     },
@@ -195,8 +195,8 @@ export default {
       } else {
         if(this.mode !== 'addEdge') {
           this.selectedNodeId = null;
+          this.edgeStartNode = null;
         }
-        this.edgeStartNode = null;
       }
     },
     addNode(id, x, y) {
@@ -246,9 +246,14 @@ export default {
 <style scoped>
 .graph-svg {
   border: 1px solid black;
-  cursor: move;
-  transition: transform 0.1s ease;
+  transition: transform 0.1s ease, cursor 0.1s ease;
   transform-origin: 0 0;
+}
+.pan-mode {
+  cursor: move;
+}
+.default-mode {
+  cursor: default;
 }
 .v-btn--active {
   background-color: #1976D2 !important;

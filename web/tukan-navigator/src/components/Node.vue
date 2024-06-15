@@ -1,10 +1,10 @@
 <template>
-  <g @mousedown="select">
+  <g @mousedown="select" :class="{'selectable': isSelectable}">
     <circle
       :cx="x"
       :cy="y"
       r="20"
-      :fill="selected ? 'red' : 'blue'"
+      :class="{ 'node-selected': selected }"
     />
     <text
       :x="x"
@@ -22,11 +22,19 @@ export default {
     id: String,
     x: Number,
     y: Number,
-    selected: Boolean
+    selected: Boolean,
+    mode: String,
+  },
+  computed: {
+    isSelectable() {
+      return this.mode === 'remove' || this.mode === 'edit' || this.mode === 'addEdge' || this.mode === 'drag';
+    }
   },
   methods: {
     select() {
-      this.$emit('select', this.id);
+      if(this.isSelectable) {
+        this.$emit('select', this.id);
+      }
     }
   },
 };
@@ -34,11 +42,23 @@ export default {
 
 <style scoped>
 circle {
-  cursor: pointer;
   user-select: none;
+  transition: fill 0.3s ease;
+}
+
+circle.node-selected {
+  fill: red;
+}
+
+circle:not(.node-selected) {
+  fill: blue;
 }
 
 text {
   user-select: none;
+}
+
+.selectable {
+  cursor: pointer;
 }
 </style>
