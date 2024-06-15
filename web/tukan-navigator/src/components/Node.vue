@@ -1,10 +1,10 @@
 <template>
-  <g @mousedown="select" :class="{'selectable': isSelectable}">
+  <g @mousedown="select" :class="{'selectable': isSelectable, 'highlighted': highlighted}">
     <circle
       :cx="x"
       :cy="y"
       r="20"
-      :class="{ 'node-selected': selected }"
+      :class="{ 'node-selected': selected, 'node-highlighted': highlighted }"
     />
     <text
       :x="x"
@@ -23,6 +23,7 @@ export default {
     x: Number,
     y: Number,
     selected: Boolean,
+    highlighted: Boolean,
     mode: String,
   },
   computed: {
@@ -50,7 +51,11 @@ circle.node-selected {
   fill: red;
 }
 
-circle:not(.node-selected) {
+circle.node-highlighted {
+  fill: green;
+}
+
+circle:not(.node-selected):not(.node-highlighted) {
   fill: blue;
 }
 

@@ -16,8 +16,18 @@
       @mousedown="startInteraction"
       @mouseup="stopInteraction"
       @mouseleave="stopInteraction"
+      @mousemove="handleMouseOver"
       @click="handleSvgClick"
     >
+      <filter id="highlight">
+        <feGaussianBlur result="blurOut" in="SourceGraphic" stdDeviation="3"></feGaussianBlur>
+        <feFlood flood-color="yellow" flood-opacity="0.5"></feFlood>
+        <feComposite in2="blurOut" operator="in"></feComposite>
+        <feMerge>
+          <feMergeNode></feMergeNode>
+          <feMergeNode in="SourceGraphic"></feMergeNode>
+        </feMerge>
+      </filter>
       <g :transform="`translate(${panX}, ${panY})`">
         <Edge
           v-for="edge in validEdges"
@@ -25,6 +35,7 @@
           :from="findNode(edge.from)"
           :to="findNode(edge.to)"
           :edge="edge"
+          :highlighted="(selectedEdgeId === edge.id || highlightedEdgeId === edge.id) && (mode === 'edit' || mode === 'remove')"
           @select="handleEdgeSelect(edge)"
         />
       </g>
@@ -36,11 +47,32 @@
           :x="node.x"
           :y="node.y"
           :selected="node.id === selectedNodeId || node.id === edgeStartNode"
+          :highlighted="node.id === hoveredNodeId || node.id === selectedNodeIdInEditMode"
           :mode="mode"
           @select="selectNode"
           @mousedown.stop="startNodeDrag($event, node.id)"
         />
       </g>
+      <line
+        v-if="mode === 'addEdge' && edgeStartNode && hoveredNodeId"
+        :x1="findNode(edgeStartNode).x + panX"
+        :y1="findNode(edgeStartNode).y + panY"
+        :x2="findNode(hoveredNodeId).x + panX"
+        :y2="findNode(hoveredNodeId).y + panY"
+        stroke="black"
+        opacity="0.5"
+        stroke-dasharray="5,5"
+      />
+      <circle
+        v-if="mode === 'add' && addNodeHovered"
+        :cx="addNodeHovered.x + panX"
+        :cy="addNodeHovered.y + panY"
+        r="20"
+        fill="transparent"
+        stroke="black"
+        opacity="0.5"
+        stroke-dasharray="5,5"
+      />
     </svg>
   </v-container>
 </template>
@@ -68,6 +100,10 @@ export default {
         // ... other edges
       ],
       selectedNodeId: null,
+      hoveredNodeId: null,
+      selectedEdgeId: null,
+      highlightedEdgeId: null,
+      selectedNodeIdInEditMode: null,
       draggingNodeId: null,
       isPanning: false,
       offsetX: 0,
@@ -79,8 +115,9 @@ export default {
       width: 800,
       height: 600,
       mode: 'pan',
-      creatingEdge: null, // for the creation of edges
+      creatingEdge: null,
       edgeStartNode: null,
+      addNodeHovered: null,
     };
   },
   computed: {
@@ -105,21 +142,31 @@ export default {
       if (this.mode === 'remove') {
         this.removeNode(id);
       } else if (this.mode === 'edit') {
+        this.selectedNodeIdInEditMode = id;
         const newId = prompt('Enter new ID', id);
         if (newId && !this.findNode(newId)) {
           this.updateNodeId(id, newId);
         }
+        this.selectedNodeIdInEditMode = null;
       } else if (this.mode === 'addEdge') {
         if (!this.edgeStartNode) {
           this.edgeStartNode = id;
           this.selectedNodeId = id;
         } else {
           if (this.edgeStartNode !== id) {
-            const weight = prompt('Enter weight for new edge');
-            if (weight) {
-              this.addEdge(this.edgeStartNode, id, parseInt(weight));
-              this.edgeStartNode = null;
-              this.selectedNodeId = null;
+            const existingEdge = this.edges.find(edge => 
+              (edge.from === this.edgeStartNode && edge.to === id) ||
+              (edge.from === id && edge.to === this.edgeStartNode)
+            );
+            if (!existingEdge) {
+              const weight = prompt('Enter weight for new edge');
+              if (weight) {
+                this.addEdge(this.edgeStartNode, id, parseInt(weight));
+                this.edgeStartNode = null;
+                this.selectedNodeId = null;
+              }
+            } else {
+              alert('An edge already exists between these nodes.');
             }
           } else {
             alert('Cannot connect a node to itself. Select a different node.');
@@ -135,10 +182,12 @@ export default {
       if (this.mode === 'remove') {
         this.removeEdge(edge.id);
       } else if (this.mode === 'edit') {
+        this.selectedEdgeId = edge.id;
         const newWeight = prompt('Enter new weight', edge.weight);
         if (newWeight) {
           this.updateEdgeWeight(edge.id, parseInt(newWeight));
         }
+        this.selectedEdgeId = null;
       }
     },
     startNodeDrag(event, nodeId) {
@@ -183,6 +232,42 @@ export default {
         this.panStartY = event.clientY;
       }
     },
+    handleMouseOver(event) {
+      const svgRect = this.$refs.svg.getBoundingClientRect();
+      const x = event.clientX - svgRect.left - this.panX;
+      const y = event.clientY - svgRect.top - this.panY;
+      const hoveredNode = this.nodes.find(node => Math.abs(node.x - x) < 20 && Math.abs(node.y - y) < 20);
+
+      if (this.mode === 'addEdge' || this.mode === 'edit' || this.mode === 'drag' || this.mode === 'remove') {
+        this.hoveredNodeId = hoveredNode ? hoveredNode.id : null;
+        if ((this.mode === 'edit' || this.mode === 'remove') && !hoveredNode) {
+          const hoveredEdge = this.edges.find(edge => {
+            const fromNode = this.findNode(edge.from);
+            const toNode = this.findNode(edge.to);
+            if (!fromNode || !toNode) return false;
+            const dist = Math.abs(
+              (toNode.y - fromNode.y) * x - (toNode.x - fromNode.x) * y + toNode.x * fromNode.y - toNode.y * fromNode.x
+            ) /
+              Math.sqrt(
+                Math.pow(toNode.y - fromNode.y, 2) + Math.pow(toNode.x - fromNode.x, 2)
+              );
+            return dist < 5;
+          });
+          this.highlightedEdgeId = hoveredEdge ? hoveredEdge.id : null;
+        } else {
+          this.highlightedEdgeId = null;
+        }
+      } else if (this.mode === 'add') {
+        this.addNodeHovered = { x, y };
+      } else {
+        this.hoveredNodeId = null;
+        this.addNodeHovered = null;
+        this.highlightedEdgeId = null;
+      }
+      if (this.draggingNodeId === null) { // Ensure no conflict with dragging
+        this.selectedNodeId = this.hoveredNodeId ? this.hoveredNodeId : null;
+      }
+    },
     handleSvgClick(event) {
       if (this.mode === 'add') {
         const svgRect = this.$refs.svg.getBoundingClientRect();
@@ -198,6 +283,7 @@ export default {
           this.edgeStartNode = null;
         }
       }
+      this.addNodeHovered = null;
     },
     addNode(id, x, y) {
       if (!this.findNode(id)) {
@@ -238,6 +324,9 @@ export default {
       this.draggingNodeId = null;
       this.edgeStartNode = null;
       this.selectedNodeId = null;
+      this.hoveredNodeId = null;
+      this.highlightedEdgeId = null;
+      this.addNodeHovered = null;
     },
   }
 };
