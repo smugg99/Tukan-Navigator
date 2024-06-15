@@ -1,0 +1,11 @@
+{
+	"datastorer": {},
+	
+	"api": {
+		"port": 8000,
+		"trusted_cors": [
+			"http://localhost:3000",
+			"http://localhost:8000"
+		]
+	}
+}

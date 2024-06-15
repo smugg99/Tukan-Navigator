@@ -3,8 +3,8 @@ package datastorer
 import (
 	"os"
 
-	"smuggr.xyz/jungle-path-finder/common/configurator"
-	"smuggr.xyz/jungle-path-finder/common/logger"
+	"smuggr.xyz/tukan-navigator/common/configurator"
+	"smuggr.xyz/tukan-navigator/common/logger"
 
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"

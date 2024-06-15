@@ -52,6 +52,12 @@ func (c *CustomLogger) Log(message *MessageWrapper) {
 	}
 }
 
+// func (c *CustomLogger) GinLog() gin.HandlerFunc {
+// 	return func(c *gin.Context) {
+		
+// 	}
+// }
+
 func Initialize() {
 	DefaultLogger.Log(MsgInitializing)
 

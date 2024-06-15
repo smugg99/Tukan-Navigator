@@ -3,7 +3,7 @@ package configurator
 import (
 	"os"
 
-	"smuggr.xyz/jungle-path-finder/common/logger"
+	"smuggr.xyz/tukan-navigator/common/logger"
 
 	"github.com/joho/godotenv"
 	"github.com/spf13/viper"

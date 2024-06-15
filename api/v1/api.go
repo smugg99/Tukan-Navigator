@@ -4,9 +4,9 @@ import (
 	"os"
 	"strconv"
 
-	"smuggr.xyz/jungle-path-finder/api/v1/routes"
-	"smuggr.xyz/jungle-path-finder/common/configurator"
-	"smuggr.xyz/jungle-path-finder/common/logger"
+	"smuggr.xyz/tukan-navigator/api/v1/routes"
+	"smuggr.xyz/tukan-navigator/common/configurator"
+	"smuggr.xyz/tukan-navigator/common/logger"
 
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
@@ -47,8 +47,6 @@ func Initialize() (*logger.MessageWrapper, chan *logger.MessageWrapper) {
 		err := DefaultRouter.Run(":" + strconv.Itoa(int(Config.Port)))
 		errCh <- logger.ErrUnexpected.Format(err.Error())
 	}()
-
-	Logger.Log(logger.MsgInitialized)
 
 	return logger.MsgInitialized, errCh
 }

@@ -7,7 +7,7 @@ package validator
 // 	"unicode"
 // 	"unicode/utf8"
 
-// 	"smuggr.xyz/jungle-path-finder/common/logger"
+// 	"smuggr.xyz/tukan-navigator/common/logger"
 // )
 
 // const (

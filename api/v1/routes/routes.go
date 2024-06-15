@@ -12,4 +12,5 @@ func Initialize(defaultRouter *gin.Engine) {
 	rootGroup := defaultRouter.Group("/api/v1")
 	rootGroup.Use(tollbooth_gin.LimitHandler(defaultLimiter))
 
+	SetupGraphsRoutes(rootGroup)
 }

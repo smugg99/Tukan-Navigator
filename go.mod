@@ -1,4 +1,4 @@
-module smuggr.xyz/jungle-path-finder
+module smuggr.xyz/tukan-navigator
 
 go 1.22.3
 

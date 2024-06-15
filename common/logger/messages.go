@@ -63,4 +63,5 @@ var (
 var (
 	ErrInitializing      = NewMessageWrapper("ErrInitializing", "error initializing: %s", ErrorLevel)
 	ErrCleaningUp        = NewMessageWrapper("ErrCleaningUp", "error cleaning up: %s", ErrorLevel)
+	ErrNoPathFound	     = NewMessageWrapper("ErrNoPathFound", "no path found", ErrorLevel)
 )
