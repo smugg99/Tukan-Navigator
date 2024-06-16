@@ -10,6 +10,8 @@
       <v-btn @click="getGraphRelationsAndPositions()">Print Graph Relations and Positions</v-btn>
       <v-btn @click="getGraphRelations()">Print Graph Relations</v-btn>
       <v-btn @click="panToNode('S')">Pan to Node 0</v-btn>
+      <v-btn :disabled="!animationRunning" @click="toggleAnimation">{{ animationRunning ? 'Stop Animation' : 'Start Animation' }}</v-btn>
+      <v-btn :disabled="animationRunning" @click="restartAnimation">Restart Animation</v-btn>
     </v-row>
     <svg
       ref="svg"
@@ -119,6 +121,9 @@ export default {
       creatingEdge: null,
       edgeStartNode: null,
       addNodeHovered: null,
+      animationRunning: false,
+      animatedPath: [],
+      pathIndex: 0,
     };
   },
   computed: {
@@ -376,13 +381,68 @@ export default {
 
       return graphRelationsAndPositions;
     },
+
+    async toggleAnimation() {
+      if (!this.animationRunning) {
+        this.animationRunning = true;
+        await this.startAnimation();
+      } else {
+        this.animationRunning = false;
+      }
+    },
+    async restartAnimation() {
+      this.animationRunning = false;
+      this.pathIndex = 0;
+      await this.startAnimation();
+      this.animationRunning = true;
+    },
+    async startAnimation() {
+      try {
+        const response = await fetch('http://localhost:8000/api/v1/graphs/shortest-path', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            nodes: this.nodes.map(node => node.id),
+            edges: this.edges.map(edge => ({
+              from: edge.from,
+              to: edge.to,
+              weight: edge.weight
+            }))
+          })
+        });
+        
+        const data = await response.json();
+        if (data.path) {
+          this.animatedPath = data.path.map(nodeId => this.findNode(nodeId));
+          this.pathIndex = 0;
+          this.animateTukan();
+        } else {
+          console.error('Path data is not valid:', data);
+        }
+      } catch (error) {
+        console.error('Error fetching path:', error);
+      }
+    },
+    animateTukan() {
+      if (this.pathIndex < this.animatedPath.length) {
+        const node = this.animatedPath[this.pathIndex];
+        this.panToNode(node.id);
+        this.pathIndex++;
+        setTimeout(this.animateTukan, 1000);
+      } else {
+        this.animationRunning = false;
+      }
+    },
+
     panToNode(nodeId) {
       const node = this.findNode(nodeId);
       if (node) {
         const svgRect = this.$refs.svg.getBoundingClientRect();
         const centerX = svgRect.width / 2;
         const centerY = svgRect.height / 2;
-        
+
         const currentPanX = this.panX;
         const currentPanY = this.panY;
 
