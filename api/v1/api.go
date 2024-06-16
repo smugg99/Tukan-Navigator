@@ -19,10 +19,11 @@ var DefaultRouter *gin.Engine
 
 func SetupCors() {
 	DefaultRouter.Use(cors.New(cors.Config{
-		AllowOriginFunc: func(origin string) bool {
-			Logger.Debug(origin)
-			return true
-		},
+		// AllowOriginFunc: func(origin string) bool {
+		// 	Logger.Debug(origin)
+		// 	return true
+		// },
+		AllowAllOrigins: true,
 		AllowCredentials: true,
 		AllowMethods:     []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
 		AllowHeaders:     []string{"Origin", "Content-Type", "Authorization"},

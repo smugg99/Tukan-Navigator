@@ -7,9 +7,9 @@
       <v-btn :class="{ 'v-btn--active': mode === 'remove' }" @click="setMode('remove')">Remove Node/Edge</v-btn>
       <v-btn :class="{ 'v-btn--active': mode === 'edit' }" @click="setMode('edit')">Edit Node/Edge</v-btn>
       <v-btn :class="{ 'v-btn--active': mode === 'addEdge' }" @click="setMode('addEdge')">Add Edge</v-btn>
-      <v-btn @click="getGraphRelationsAndPositions()">Print Graph Relations and Positions</v-btn>
-      <v-btn @click="getGraphRelations()">Print Graph Relations</v-btn>
-      <v-btn @click="panToNode('S')">Pan to Node 0</v-btn>
+      <v-btn @click="getGraphRelationsAndPositions">Print Graph Relations and Positions</v-btn>
+      <v-btn @click="getGraphRelations">Print Graph Relations</v-btn>
+      <v-btn @click="startAnimation">Start Animation</v-btn>
     </v-row>
     <svg
       ref="svg"
@@ -76,6 +76,13 @@
         opacity="0.5"
         stroke-dasharray="5,5"
       />
+      <circle
+        v-if="isPathSet"
+        :cx="currentPosition.x + panX"
+        :cy="currentPosition.y + panY"
+        r="10"
+        fill="blue"
+      />
     </svg>
   </v-container>
 </template>
@@ -119,6 +126,10 @@ export default {
       creatingEdge: null,
       edgeStartNode: null,
       addNodeHovered: null,
+      isPathSet: false,
+      animatedPath: [],
+      currentPosition: { x: 0, y: 0 },
+      pathIndex: 0,
     };
   },
   computed: {
@@ -209,11 +220,8 @@ export default {
     startInteraction(event) {
       if (this.mode === 'pan') {
         this.isPanning = true;
-        this.panStartX = event.clientX;
-        this.panStartY = event.clientY;
-      }
-      if (this.mode === 'drag' && this.draggingNodeId) {
-        this.selectedNodeId = this.draggingNodeId;
+        this.panStartX = event.clientX - this.panX;
+        this.panStartY = event.clientY - this.panY;
       }
     },
     stopInteraction() {
@@ -221,84 +229,41 @@ export default {
       this.draggingNodeId = null;
     },
     onMouseMove(event) {
-      if (this.draggingNodeId !== null && this.mode === 'drag') {
+      if (this.isPanning) {
+        this.panX = event.clientX - this.panStartX;
+        this.panY = event.clientY - this.panStartY;
+      } else if (this.draggingNodeId) {
         const node = this.findNode(this.draggingNodeId);
         if (node) {
           node.x = event.clientX - this.offsetX - this.panX;
           node.y = event.clientY - this.offsetY - this.panY;
         }
       }
-      if (this.isPanning) {
-        const dx = event.clientX - this.panStartX;
-        const dy = event.clientY - this.panStartY;
-        this.panX += dx;
-        this.panY += dy;
-        this.panStartX = event.clientX;
-        this.panStartY = event.clientY;
-      }
     },
     handleMouseOver(event) {
-      const svgRect = this.$refs.svg.getBoundingClientRect();
-      const x = event.clientX - svgRect.left - this.panX;
-      const y = event.clientY - svgRect.top - this.panY;
-      const hoveredNode = this.nodes.find(node => Math.abs(node.x - x) < 20 && Math.abs(node.y - y) < 20);
-
-      if (this.mode === 'addEdge' || this.mode === 'edit' || this.mode === 'drag' || this.mode === 'remove') {
-        this.hoveredNodeId = hoveredNode ? hoveredNode.id : null;
-        if ((this.mode === 'edit' || this.mode === 'remove') && !hoveredNode) {
-          const hoveredEdge = this.edges.find(edge => {
-            const fromNode = this.findNode(edge.from);
-            const toNode = this.findNode(edge.to);
-            if (!fromNode || !toNode) return false;
-            const dist = Math.abs(
-              (toNode.y - fromNode.y) * x - (toNode.x - fromNode.x) * y + toNode.x * fromNode.y - toNode.y * fromNode.x
-            ) /
-              Math.sqrt(
-                Math.pow(toNode.y - fromNode.y, 2) + Math.pow(toNode.x - fromNode.x, 2)
-              );
-            return dist < 5;
-          });
-          this.highlightedEdgeId = hoveredEdge ? hoveredEdge.id : null;
-        } else {
-          this.highlightedEdgeId = null;
-        }
-      } else if (this.mode === 'add') {
-        this.addNodeHovered = { x, y };
+      if (this.mode === 'add') {
+        this.addNodeHovered = { x: event.clientX - this.panX, y: event.clientY - this.panY };
       } else {
-        this.hoveredNodeId = null;
-        this.addNodeHovered = null;
-        this.highlightedEdgeId = null;
-      }
-      if (this.draggingNodeId === null) {
-        this.selectedNodeId = this.hoveredNodeId ? this.hoveredNodeId : null;
+        this.hoveredNodeId = this.nodes.find(node => 
+          Math.abs(event.clientX - node.x - this.panX) < 10 &&
+          Math.abs(event.clientY - node.y - this.panY) < 10
+        )?.id || null;
       }
     },
     handleSvgClick(event) {
-      if (this.mode === 'add') {
-        const svgRect = this.$refs.svg.getBoundingClientRect();
-        const x = event.clientX - svgRect.left - this.panX;
-        const y = event.clientY - svgRect.top - this.panY;
-        const newId = prompt('Enter new ID');
-        if (newId) {
-          if (!this.findNode(newId)) {
-            this.addNode(newId, x, y);
-          } else {
-            alert('Duplicate ID detected. Please enter a unique ID.');
-          }
+      if (this.mode === 'add' && this.addNodeHovered) {
+        const id = prompt('Enter node ID');
+        if (id) {
+          this.addNode(id, this.addNodeHovered.x, this.addNodeHovered.y);
         }
-      } else {
-        if(this.mode !== 'addEdge') {
-          this.selectedNodeId = null;
-          this.edgeStartNode = null;
-        }
+        this.addNodeHovered = null;
       }
-      this.addNodeHovered = null;
     },
     addNode(id, x, y) {
-      if (!this.findNode(id)) {
-        this.nodes.push({ id, x, y });
+      if (this.findNode(id)) {
+        alert('A node with this ID already exists.');
       } else {
-        alert('Duplicate ID detected. Please enter a unique ID.');
+        this.nodes.push({ id, x, y });
       }
     },
     removeNode(id) {
@@ -306,8 +271,11 @@ export default {
       this.edges = this.edges.filter(edge => edge.from !== id && edge.to !== id);
     },
     addEdge(from, to, weight) {
-      if (!this.edges.find(edge => (edge.from === from && edge.to === to) || (edge.from === to && edge.to === from))) {
-        this.edges.push({ id: `${from}-${to}`, from, to, weight });
+      const id = `${from}-${to}`;
+      if (!this.edges.some(edge => edge.id === id)) {
+        this.edges.push({ id, from, to, weight });
+      } else {
+        alert('This edge already exists.');
       }
     },
     removeEdge(id) {
@@ -323,96 +291,68 @@ export default {
         });
       }
     },
-    updateEdgeWeight(id, newWeight) {
+    updateEdgeWeight(id, weight) {
       const edge = this.edges.find(edge => edge.id === id);
-      if (edge) {
-        edge.weight = newWeight;
-      }
+      if (edge) edge.weight = weight;
     },
-    setMode(mode) {
-      this.mode = mode;
-      this.isPanning = false;
-      this.draggingNodeId = null;
-      this.edgeStartNode = null;
-      this.selectedNodeId = null;
-      this.hoveredNodeId = null;
-      this.highlightedEdgeId = null;
-      this.addNodeHovered = null;
-    },
-    getGraphRelations() {
-      const nodes = this.nodes.map(node => node.id);
-      const edges = this.edges.map(edge => ({
-        from: edge.from,
-        to: edge.to,
-        weight: edge.weight
-      }));
-
-      const graphRelations = {
-        nodes,
-        edges
-      };
-      console.log(graphRelations);
-
-      return graphRelations;
+    setMode(newMode) {
+      this.mode = newMode;
     },
     getGraphRelationsAndPositions() {
-      const nodes = this.nodes.map(node => ({
-        id: node.id,
-        x: node.x,
-        y: node.y
-      }));
-
-      const edges = this.edges.map(edge => ({
+      const relationsAndPositions = {
+        nodes: this.nodes.map(node => ({ id: node.id, x: node.x, y: node.y })),
+        edges: this.edges.map(edge => ({ from: edge.from, to: edge.to, weight: edge.weight }))
+      };
+      console.log(JSON.stringify(relationsAndPositions, null, 2));
+    },
+    getGraphRelations() {
+      const relations = this.edges.map(edge => ({
         from: edge.from,
         to: edge.to,
         weight: edge.weight
       }));
-
-      const graphRelationsAndPositions = {
-        nodes,
-        edges
-      };
-      console.log(graphRelationsAndPositions);
-
-      return graphRelationsAndPositions;
+      console.log(JSON.stringify(relations, null, 2));
     },
-    panToNode(nodeId) {
-      const node = this.findNode(nodeId);
-      if (node) {
-        const svgRect = this.$refs.svg.getBoundingClientRect();
-        const centerX = svgRect.width / 2;
-        const centerY = svgRect.height / 2;
-        
-        const currentPanX = this.panX;
-        const currentPanY = this.panY;
-
-        const targetX = -node.x + centerX - currentPanX;
-        const targetY = -node.y + centerY - currentPanY;
-
-        const duration = 500;
-        let startTime = null;
-
-        const animate = (currentTime) => {
-          if (!startTime) startTime = currentTime;
-          const elapsedTime = currentTime - startTime;
-          const progress = Math.min(elapsedTime / duration, 1);
-
-          const easingProgress = this.easeInOutQuad(progress);
-
-          this.panX = currentPanX + targetX * easingProgress;
-          this.panY = currentPanY + targetY * easingProgress;
-
-          if (progress < 1) {
-            requestAnimationFrame(animate);
-          }
-        };
-
-        requestAnimationFrame(animate);
+    async startAnimation() {
+      try {
+        const response = await fetch('http://localhost:8000/api/v1/graphs/shortest-path', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+              nodes: this.nodes.map(node => node.id),
+              edges: this.edges.map(edge => ({
+                from: edge.from,
+                to: edge.to,
+                weight: edge.weight
+              }))
+            },
+          )
+        });
+        console.log(response);
+        const data = await response.json();
+        if (data.path) {
+          this.animatedPath = data.path.map(nodeId => {
+            const node = this.findNode(nodeId);
+            return { x: node.x, y: node.y };
+          });
+          this.isPathSet = true;
+          this.pathIndex = 0;
+          this.animateTukan();
+        } else {
+          console.error('Path data is not valid:', data);
+        }
+      } catch (error) {
+        console.error('Error fetching path:', error);
       }
     },
-
-    easeInOutQuad(t) {
-      return t < 0.5 ? 2 * t * t : -1 + (4 - 2 * t) * t;
+    animateTukan() {
+      if (this.pathIndex < this.animatedPath.length) {
+        this.currentPosition = this.animatedPath[this.pathIndex];
+        this.pathIndex++;
+        setTimeout(this.animateTukan, 1000); // Adjust the delay as needed
+      }
     },
   }
 };
@@ -420,18 +360,16 @@ export default {
 
 <style scoped>
 .graph-svg {
-  border: 1px solid black;
-  transition: transform 0.1s ease, cursor 0.1s ease;
-  transform-origin: 0 0;
+  border: 1px solid #ccc;
+  background-color: #f9f9f9;
+  cursor: grab;
 }
-.pan-mode {
-  cursor: move;
+
+.graph-svg.pan-mode {
+  cursor: grab;
 }
-.default-mode {
+
+.graph-svg.default-mode {
   cursor: default;
-}
-.v-btn--active {
-  background-color: #1976D2 !important;
-  color: white !important;
 }
 </style>

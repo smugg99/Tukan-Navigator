@@ -29,7 +29,7 @@
       dominant-baseline="central"
       font-size="16px"
       font-weight="bold"
-      :transform="`rotate(${adjustedAngle}, ${middleX}, ${middleY}) translate(0, -10)`"
+      :transform="`rotate(${adjustedAngle}, ${middleX}, ${middleY}) translate(0, -12)`"
     >
       {{ edge.weight }}
     </text>
