@@ -339,7 +339,7 @@ export default {
           });
           this.isPathSet = true;
           this.pathIndex = 0;
-          this.animateTukan();
+          this.animateToucan();
         } else {
           console.error('Path data is not valid:', data);
         }
@@ -347,11 +347,11 @@ export default {
         console.error('Error fetching path:', error);
       }
     },
-    animateTukan() {
+    animateToucan() {
       if (this.pathIndex < this.animatedPath.length) {
         this.currentPosition = this.animatedPath[this.pathIndex];
         this.pathIndex++;
-        setTimeout(this.animateTukan, 1000); // Adjust the delay as needed
+        setTimeout(this.animateToucan, 1000); // Adjust the delay as needed
       }
     },
   }

@@ -1,83 +1,130 @@
+
 <template>
-  <v-container>
-    <v-row>
-      <v-btn :class="{ 'v-btn--active': mode === 'pan' }" @click="setMode('pan')">Pan</v-btn>
-      <v-btn :class="{ 'v-btn--active': mode === 'drag' }" @click="setMode('drag')">Drag</v-btn>
-      <v-btn :class="{ 'v-btn--active': mode === 'add' }" @click="setMode('add')">Add Node</v-btn>
-      <v-btn :class="{ 'v-btn--active': mode === 'remove' }" @click="setMode('remove')">Remove Node/Edge</v-btn>
-      <v-btn :class="{ 'v-btn--active': mode === 'edit' }" @click="setMode('edit')">Edit Node/Edge</v-btn>
-      <v-btn :class="{ 'v-btn--active': mode === 'addEdge' }" @click="setMode('addEdge')">Add Edge</v-btn>
-      <v-btn @click="getGraphRelationsAndPositions()">Print Graph Relations and Positions</v-btn>
-      <v-btn @click="getGraphRelations()">Print Graph Relations</v-btn>
-      <v-btn @click="panToNode('S')">Pan to Node 0</v-btn>
-      <v-btn :color="animationError ? 'error' : (animationRunning ? 'warning' : 'success')" @click="toggleAnimation">{{ animationRunning ? 'Stop' : (animationError ? 'Restart' : 'Start') }}</v-btn>
+  <v-container fluid class="fill-height">
+    <v-row class="fill-height">
+      <v-col class="fill-height">
+        <svg
+          ref="svg"
+          class="graph-svg"
+          @mousedown="startInteraction"
+          @mouseup="stopInteraction"
+          @mouseleave="stopInteraction"
+          @mousemove="handleMouseOver"
+          @click="handleSvgClick"
+        >
+          <g class="button-group">
+            <!-- Buttons here -->
+            <foreignObject x="10" y="10" width="100%" height="50">
+              <v-btn
+                :class="{ 'v-btn--active': mode === 'pan' }"
+                @click.stop="setMode('pan')"
+                dense
+              >Move</v-btn>
+              <v-btn
+                :class="{ 'v-btn--active': mode === 'drag' }"
+                @click.stop="setMode('drag')"
+                dense
+              >Drag</v-btn>
+              <v-btn
+                :class="{ 'v-btn--active': mode === 'add' }"
+                @click.stop="setMode('add')"
+                dense
+              >Add Node</v-btn>
+              <v-btn
+                :class="{ 'v-btn--active': mode === 'remove' }"
+                @click.stop="setMode('remove')"
+                dense
+              >Remove</v-btn>
+              <v-btn
+                :class="{ 'v-btn--active': mode === 'edit' }"
+                @click.stop="setMode('edit')"
+                dense
+              >Edit</v-btn>
+              <v-btn
+                :class="{ 'v-btn--active': mode === 'addEdge' }"
+                @click.stop="setMode('addEdge')"
+                dense
+              >Add Edge</v-btn>
+              <v-btn @click.stop="panToNode('S')" dense>Go to start</v-btn>
+              <v-btn
+                :class="animationError ? 'error' : (animationRunning ? 'warning' : 'success')"
+                @click.stop="toggleAnimation"
+                dense
+              >
+                {{ animationRunning ? 'Stop' : (animationError ? 'Restart' : 'Start') }}
+              </v-btn>
+            </foreignObject>
+          </g>
+
+          <filter id="highlight">
+            <feGaussianBlur result="blurOut" in="SourceGraphic" stdDeviation="3"></feGaussianBlur>
+            <feFlood flood-color="yellow" flood-opacity="0.5"></feFlood>
+            <feComposite in2="blurOut" operator="in"></feComposite>
+            <feMerge>
+              <feMergeNode></feMergeNode>
+              <feMergeNode in="SourceGraphic"></feMergeNode>
+            </feMerge>
+          </filter>
+
+          <g :transform="`translate(${panX}, ${panY})`">
+            <Edge
+              v-for="edge in validEdges"
+              :key="'edge-' + edge.id"
+              :from="findNode(edge.from)"
+              :to="findNode(edge.to)"
+              :edge="edge"
+              :highlighted="(selectedEdgeId === edge.id || highlightedEdgeId === edge.id) && (mode === 'edit' || mode === 'remove')"
+              @select="handleEdgeSelect(edge)"
+            />
+          </g>
+          
+          <g :transform="`translate(${panX}, ${panY})`">
+            <Node
+              v-for="node in nodes"
+              :key="'node-' + node.id"
+              :id="node.id"
+              :x="node.x"
+              :y="node.y"
+              :selected="node.id === selectedNodeId || node.id === edgeStartNode"
+              :highlighted="node.id === hoveredNodeId || node.id === selectedNodeIdInEditMode"
+              :mode="mode"
+              @select="selectNode"
+              @mousedown.stop="startNodeDrag($event, node.id)"
+            />
+          </g>
+
+          <line
+            v-if="mode === 'addEdge' && edgeStartNode && hoveredNodeId"
+            :x1="findNode(edgeStartNode).x + panX"
+            :y1="findNode(edgeStartNode).y + panY"
+            :x2="findNode(hoveredNodeId).x + panX"
+            :y2="findNode(hoveredNodeId).y + panY"
+            stroke="black"
+            opacity="0.5"
+            stroke-dasharray="5,5"
+            pointer-events="none"
+          />
+          <circle
+            v-if="mode === 'add' && addNodeHovered"
+            :cx="addNodeHovered.x + panX"
+            :cy="addNodeHovered.y + panY"
+            r="20"
+            fill="transparent"
+            stroke="black"
+            opacity="0.5"
+            stroke-dasharray="5,5"
+            pointer-events="none"
+          />
+          <circle
+            v-if="isPathSet"
+            :cx="currentPosition.x + panX"
+            :cy="currentPosition.y + panY"
+            r="10"
+            fill="blue"
+          />
+        </svg>
+      </v-col>
     </v-row>
-    <svg
-      ref="svg"
-      :width="width"
-      :height="height"
-      :class="{'graph-svg': true, 'pan-mode': mode === 'pan', 'default-mode': mode !== 'pan'}"
-      @mousedown="startInteraction"
-      @mouseup="stopInteraction"
-      @mouseleave="stopInteraction"
-      @mousemove="handleMouseOver"
-      @click="handleSvgClick"
-    >
-      <filter id="highlight">
-        <feGaussianBlur result="blurOut" in="SourceGraphic" stdDeviation="3"></feGaussianBlur>
-        <feFlood flood-color="yellow" flood-opacity="0.5"></feFlood>
-        <feComposite in2="blurOut" operator="in"></feComposite>
-        <feMerge>
-          <feMergeNode></feMergeNode>
-          <feMergeNode in="SourceGraphic"></feMergeNode>
-        </feMerge>
-      </filter>
-      <g :transform="`translate(${panX}, ${panY})`">
-        <Edge
-          v-for="edge in validEdges"
-          :key="'edge-' + edge.id"
-          :from="findNode(edge.from)"
-          :to="findNode(edge.to)"
-          :edge="edge"
-          :highlighted="(selectedEdgeId === edge.id || highlightedEdgeId === edge.id) && (mode === 'edit' || mode === 'remove')"
-          @select="handleEdgeSelect(edge)"
-        />
-      </g>
-      <g :transform="`translate(${panX}, ${panY})`">
-        <Node
-          v-for="node in nodes"
-          :key="'node-' + node.id"
-          :id="node.id"
-          :x="node.x"
-          :y="node.y"
-          :selected="node.id === selectedNodeId || node.id === edgeStartNode"
-          :highlighted="node.id === hoveredNodeId || node.id === selectedNodeIdInEditMode"
-          :mode="mode"
-          @select="selectNode"
-          @mousedown.stop="startNodeDrag($event, node.id)"
-        />
-      </g>
-      <line
-        v-if="mode === 'addEdge' && edgeStartNode && hoveredNodeId"
-        :x1="findNode(edgeStartNode).x + panX"
-        :y1="findNode(edgeStartNode).y + panY"
-        :x2="findNode(hoveredNodeId).x + panX"
-        :y2="findNode(hoveredNodeId).y + panY"
-        stroke="black"
-        opacity="0.5"
-        stroke-dasharray="5,5"
-      />
-      <circle
-        v-if="mode === 'add' && addNodeHovered"
-        :cx="addNodeHovered.x + panX"
-        :cy="addNodeHovered.y + panY"
-        r="20"
-        fill="transparent"
-        stroke="black"
-        opacity="0.5"
-        stroke-dasharray="5,5"
-      />
-    </svg>
   </v-container>
 </template>
 
@@ -85,11 +132,13 @@
 import { throttle } from 'lodash';
 import Node from './Node.vue';
 import Edge from './Edge.vue';
+import Toucan from './Toucan.vue';
 
 export default {
   components: {
     Node,
     Edge,
+    Toucan
   },
   data() {
     return {
@@ -400,13 +449,6 @@ export default {
       }
     },
 
-    async restartAnimation() {
-      this.animationRunning = false;
-      this.animationError = false;
-      this.pathIndex = 0;
-      await this.startAnimation();
-      this.animationRunning = true;
-    },
     async startAnimation() {
       try {
         const response = await fetch('http://localhost:8000/api/v1/graphs/shortest-path', {
@@ -426,30 +468,77 @@ export default {
         
         const data = await response.json();
         if (data.path) {
-          this.animatedPath = data.path.map(nodeId => this.findNode(nodeId));
+          // Clear existing animation data
+          this.animatedPath = [];
+
+          // Start animation from the 'S' node
+          this.animatedPath.push(this.findNode('S'));
+
+          // Append the shortest path nodes to animatedPath
+          this.animatedPath.push(...data.path.map(nodeId => this.findNode(nodeId)));
           this.pathIndex = 0;
-          this.animateTukan();
+          
+          this.animationRunning = true;
+          this.animationError = false;
+
+          this.animateToucan();
         } else {
           console.error('Path data is not valid:', data);
-          setTimeout(() => { this.animationRunning = false; this.animationError = true; }, 1000);
+          setTimeout(() => { this.animationRunning = false; this.animationError = true; }, 200);
         }
       } catch (error) {
         console.error('Error fetching path:', error);
-        setTimeout(() => { this.animationRunning = false; this.animationError = true; }, 1000);
+        setTimeout(() => { this.animationRunning = false; this.animationError = true; }, 200);
       }
     },
-    animateTukan() {
-      if (this.pathIndex < this.animatedPath.length) {
+
+    async animateToucan() {
+      if (this.animationRunning && this.pathIndex < this.animatedPath.length) {
         const node = this.animatedPath[this.pathIndex];
-        this.panToNode(node.id);
+        await this.panToucanToNode(node.id);
         this.pathIndex++;
-        setTimeout(this.animateTukan, 1000);
+        setTimeout(this.animateToucan, 1500);
       } else {
         this.animationRunning = false;
       }
     },
 
-    panToNode(nodeId) {
+    async panToucanToNode(nodeId) {
+      const node = this.findNode(nodeId);
+      if (node) {
+        const svgRect = this.$refs.svg.getBoundingClientRect();
+        const centerX = svgRect.width / 2;
+        const centerY = svgRect.height / 2;
+
+        const currentPanX = this.panX;
+        const currentPanY = this.panY;
+
+        const targetX = -node.x + centerX - currentPanX;
+        const targetY = -node.y + centerY - currentPanY;
+
+        const duration = 500; // Duration in milliseconds
+        let startTime = null;
+
+        const animate = (currentTime) => {
+          if (!startTime) startTime = currentTime;
+          const elapsedTime = currentTime - startTime;
+          const progress = Math.min(elapsedTime / duration, 1);
+
+          const easingProgress = this.easeInOutQuad(progress);
+
+          this.panX = currentPanX + targetX * easingProgress;
+          this.panY = currentPanY + targetY * easingProgress;
+
+          if (progress < 1) {
+            requestAnimationFrame(animate);
+          }
+        };
+
+        requestAnimationFrame(animate);
+      }
+    },
+
+    async panToNode(nodeId) {
       const node = this.findNode(nodeId);
       if (node) {
         const svgRect = this.$refs.svg.getBoundingClientRect();
@@ -492,19 +581,31 @@ export default {
 </script>
 
 <style scoped>
+.fill-height {
+  height: 100%;
+  width: 100%;
+  margin: 0;
+  padding: 0;
+}
+
 .graph-svg {
-  border: 1px solid black;
-  transition: transform 0.1s ease, cursor 0.1s ease;
-  transform-origin: 0 0;
+  width: 100%;
+  height: 100%;
 }
-.pan-mode {
-  cursor: move;
+
+.button-group {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  z-index: 999;
 }
-.default-mode {
-  cursor: default;
-}
+
 .v-btn--active {
   background-color: #1976D2 !important;
   color: white !important;
+}
+
+.button-group v-btn {
+  margin-right: 10px; /* Adjust as needed */
 }
 </style>
