@@ -1,133 +1,129 @@
-
 <template>
   <v-container fluid class="fill-height">
     <v-row class="fill-height">
       <v-col class="fill-height">
-        <svg
-          ref="svg"
-          class="graph-svg"
-          @mousedown="startInteraction"
-          @mouseup="stopInteraction"
-          @mouseleave="stopInteraction"
-          @mousemove="handleMouseOver"
-          @click="handleSvgClick"
-        >
-          <g class="button-group">
+        <!-- SVG container with relative positioning -->
+        <div class="svg-container">
+          <!-- SVG graph with absolute positioning -->
+          <svg
+            ref="svg"
+            class="graph-svg"
+            @mousedown="startInteraction"
+            @mouseup="stopInteraction"
+            @mouseleave="stopInteraction"
+            @mousemove="handleMouseOver"
+            @click="handleSvgClick"
+          >
+            <!-- Existing SVG content -->
+            <g :transform="`translate(${panX}, ${panY})`">
+              <!-- Render existing edges -->
+              <Edge
+                v-for="edge in validEdges"
+                :key="'edge-' + edge.id"
+                :from="findNode(edge.from)"
+                :to="findNode(edge.to)"
+                :edge="edge"
+                :highlighted="(selectedEdgeId === edge.id || highlightedEdgeId === edge.id) && (mode === 'edit' || mode === 'remove')"
+                @select="handleEdgeSelect(edge)"
+              />
+              <!-- Render existing nodes -->
+              <Node
+                v-for="node in nodes"
+                :key="'node-' + node.id"
+                :id="node.id"
+                :x="node.x"
+                :y="node.y"
+                :selected="node.id === selectedNodeId || node.id === edgeStartNode"
+                :highlighted="node.id === hoveredNodeId || node.id === selectedNodeIdInEditMode"
+                :mode="mode"
+                @select="selectNode"
+                @mousedown.stop="startNodeDrag($event, node.id)"
+              />
+            </g>
+
+            <!-- Ghost element for new edge -->
+            <line
+              v-if="mode === 'addEdge' && edgeStartNode && hoveredNodeId"
+              :x1="findNode(edgeStartNode).x + panX"
+              :y1="findNode(edgeStartNode).y + panY"
+              :x2="findNode(hoveredNodeId).x + panX"
+              :y2="findNode(hoveredNodeId).y + panY"
+              stroke="black"
+              opacity="0.5"
+              stroke-dasharray="5,5"
+              pointer-events="none"
+            />
+
+            <!-- Ghost element for new node -->
+            <circle
+              v-if="mode === 'add' && addNodeHovered"
+              :cx="addNodeHovered.x + panX"
+              :cy="addNodeHovered.y + panY"
+              r="20"
+              fill="transparent"
+              stroke="black"
+              opacity="0.5"
+              stroke-dasharray="5,5"
+              pointer-events="none"
+            />
+
+            <!-- Indicator for current position -->
+            <circle
+              v-if="isPathSet"
+              :cx="currentPosition.x + panX"
+              :cy="currentPosition.y + panY"
+              r="10"
+              fill="blue"
+            />
+          </svg>
+
+          <!-- Button group outside SVG for z-index stacking -->
+          <div class="button-group">
             <!-- Buttons here -->
-            <foreignObject x="10" y="10" width="100%" height="50">
-              <v-btn
-                :class="{ 'v-btn--active': mode === 'pan' }"
-                @click.stop="setMode('pan')"
-                dense
-              >Move</v-btn>
-              <v-btn
-                :class="{ 'v-btn--active': mode === 'drag' }"
-                @click.stop="setMode('drag')"
-                dense
-              >Drag</v-btn>
-              <v-btn
-                :class="{ 'v-btn--active': mode === 'add' }"
-                @click.stop="setMode('add')"
-                dense
-              >Add Node</v-btn>
-              <v-btn
-                :class="{ 'v-btn--active': mode === 'remove' }"
-                @click.stop="setMode('remove')"
-                dense
-              >Remove</v-btn>
-              <v-btn
-                :class="{ 'v-btn--active': mode === 'edit' }"
-                @click.stop="setMode('edit')"
-                dense
-              >Edit</v-btn>
-              <v-btn
-                :class="{ 'v-btn--active': mode === 'addEdge' }"
-                @click.stop="setMode('addEdge')"
-                dense
-              >Add Edge</v-btn>
-              <v-btn @click.stop="panToNode('S')" dense>Go to start</v-btn>
-              <v-btn
-                :class="animationError ? 'error' : (animationRunning ? 'warning' : 'success')"
-                @click.stop="toggleAnimation"
-                dense
-              >
-                {{ animationRunning ? 'Stop' : (animationError ? 'Restart' : 'Start') }}
-              </v-btn>
-            </foreignObject>
-          </g>
-
-          <filter id="highlight">
-            <feGaussianBlur result="blurOut" in="SourceGraphic" stdDeviation="3"></feGaussianBlur>
-            <feFlood flood-color="yellow" flood-opacity="0.5"></feFlood>
-            <feComposite in2="blurOut" operator="in"></feComposite>
-            <feMerge>
-              <feMergeNode></feMergeNode>
-              <feMergeNode in="SourceGraphic"></feMergeNode>
-            </feMerge>
-          </filter>
-
-          <g :transform="`translate(${panX}, ${panY})`">
-            <Edge
-              v-for="edge in validEdges"
-              :key="'edge-' + edge.id"
-              :from="findNode(edge.from)"
-              :to="findNode(edge.to)"
-              :edge="edge"
-              :highlighted="(selectedEdgeId === edge.id || highlightedEdgeId === edge.id) && (mode === 'edit' || mode === 'remove')"
-              @select="handleEdgeSelect(edge)"
-            />
-          </g>
-          
-          <g :transform="`translate(${panX}, ${panY})`">
-            <Node
-              v-for="node in nodes"
-              :key="'node-' + node.id"
-              :id="node.id"
-              :x="node.x"
-              :y="node.y"
-              :selected="node.id === selectedNodeId || node.id === edgeStartNode"
-              :highlighted="node.id === hoveredNodeId || node.id === selectedNodeIdInEditMode"
-              :mode="mode"
-              @select="selectNode"
-              @mousedown.stop="startNodeDrag($event, node.id)"
-            />
-          </g>
-
-          <line
-            v-if="mode === 'addEdge' && edgeStartNode && hoveredNodeId"
-            :x1="findNode(edgeStartNode).x + panX"
-            :y1="findNode(edgeStartNode).y + panY"
-            :x2="findNode(hoveredNodeId).x + panX"
-            :y2="findNode(hoveredNodeId).y + panY"
-            stroke="black"
-            opacity="0.5"
-            stroke-dasharray="5,5"
-            pointer-events="none"
-          />
-          <circle
-            v-if="mode === 'add' && addNodeHovered"
-            :cx="addNodeHovered.x + panX"
-            :cy="addNodeHovered.y + panY"
-            r="20"
-            fill="transparent"
-            stroke="black"
-            opacity="0.5"
-            stroke-dasharray="5,5"
-            pointer-events="none"
-          />
-          <circle
-            v-if="isPathSet"
-            :cx="currentPosition.x + panX"
-            :cy="currentPosition.y + panY"
-            r="10"
-            fill="blue"
-          />
-        </svg>
+            <v-btn
+              :class="{ 'v-btn--active': mode === 'pan' }"
+              @click.stop="setMode('pan')"
+              dense
+            >Move</v-btn>
+            <v-btn
+              :class="{ 'v-btn--active': mode === 'drag' }"
+              @click.stop="setMode('drag')"
+              dense
+            >Drag</v-btn>
+            <v-btn
+              :class="{ 'v-btn--active': mode === 'add' }"
+              @click.stop="setMode('add')"
+              dense
+            >Add Node</v-btn>
+            <v-btn
+              :class="{ 'v-btn--active': mode === 'remove' }"
+              @click.stop="setMode('remove')"
+              dense
+            >Remove</v-btn>
+            <v-btn
+              :class="{ 'v-btn--active': mode === 'edit' }"
+              @click.stop="setMode('edit')"
+              dense
+            >Edit</v-btn>
+            <v-btn
+              :class="{ 'v-btn--active': mode === 'addEdge' }"
+              @click.stop="setMode('addEdge')"
+              dense
+            >Add Edge</v-btn>
+            <v-btn @click.stop="panToNode('S')" dense>Go to start</v-btn>
+            <v-btn
+              :class="animationError ? 'error' : (animationRunning ? 'warning' : 'success')"
+              @click.stop="toggleAnimation"
+              dense
+            >
+              {{ animationRunning ? 'Stop' : (animationError ? 'Restart' : 'Start') }}
+            </v-btn>
+          </div>
+        </div>
       </v-col>
     </v-row>
   </v-container>
 </template>
-
 <script>
 import { throttle } from 'lodash';
 import Node from './Node.vue';
@@ -583,29 +579,29 @@ export default {
 <style scoped>
 .fill-height {
   height: 100%;
-  width: 100%;
   margin: 0;
   padding: 0;
+  overflow: hidden;
 }
-
-.graph-svg {
+.svg-container {
+  position: relative;
   width: 100%;
   height: 100%;
+  overflow: hidden;
 }
-
-.button-group {
+.graph-svg {
   position: absolute;
-  top: 10px;
-  left: 10px;
-  z-index: 999;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 1; /* Ensure SVG content is below buttons */
 }
-
-.v-btn--active {
-  background-color: #1976D2 !important;
-  color: white !important;
-}
-
-.button-group v-btn {
-  margin-right: 10px; /* Adjust as needed */
+.button-group {
+  user-select: none;
+  position: absolute;
+  top: 10px; /* Adjust as needed */
+  left: 10px; /* Adjust as needed */
+  z-index: 2; /* Ensure buttons are above SVG content */
 }
 </style>
