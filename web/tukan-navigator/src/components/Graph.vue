@@ -96,12 +96,9 @@ export default {
     return {
       nodes: [
         { id: 'S', x: 50, y: 50 },
-        { id: 'A', x: 150, y: 50 },
+        { id: 'P', x: 250, y: 50 },
       ],
-      edges: [
-        { id: 'S-A', from: 'S', to: 'A', weight: 4 },
-        { id: 'S-B', from: 'S', to: 'B', weight: 3 },
-      ],
+      edges: [],
       selectedNodeId: null,
       hoveredNodeId: null,
       selectedEdgeId: null,
@@ -148,6 +145,11 @@ export default {
       if (this.mode === 'remove') {
         this.removeNode(id);
       } else if (this.mode === 'edit') {
+        if (id === 'S' || id === 'P') {
+          alert('Node cannot be updated.');
+          return;
+        }
+
         this.selectedNodeIdInEditMode = id;
         const newId = prompt('Enter new ID', id);
         if (newId && newId !== id) {
@@ -307,6 +309,11 @@ export default {
       }
     },
     removeNode(id) {
+      if (id === 'S' || id === 'P') {
+        alert('Node cannot be deleted.');
+        return;
+      }
+
       this.nodes = this.nodes.filter(node => node.id !== id);
       this.edges = this.edges.filter(edge => edge.from !== id && edge.to !== id);
     },
