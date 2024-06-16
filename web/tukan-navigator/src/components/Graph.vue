@@ -109,66 +109,85 @@
           </svg>
 
           <!-- Button group outside SVG for z-index stacking -->
-          <div class="button-group">
+          <div class="button-group top">
             <!-- Buttons with icons and gaps -->
             <v-btn
               :class="{ 'v-btn--active': mode === 'pan' }"
               @click.stop="setMode('pan')"
-              dense
+              :size="isMobile ? 'x-small' : 'large'"
+              density="comfortable"
             >
               <v-icon>mdi-cursor-move</v-icon> Move
             </v-btn>
+
             <v-btn
               :class="{ 'v-btn--active': mode === 'drag' }"
               @click.stop="setMode('drag')"
-              dense
+              :size="isMobile ? 'x-small' : 'large'"
+              density="comfortable"
             >
-              <v-icon>mdi-drag</v-icon> Drag
+              <v-icon>mdi-drag-variant</v-icon> Drag
             </v-btn>
+
             <v-btn
               :class="{ 'v-btn--active': mode === 'add' }"
               @click.stop="setMode('add')"
-              dense
+              :size="isMobile ? 'x-small' : 'large'"
+              density="comfortable"
             >
-              <v-icon>mdi-plus</v-icon> Add Node
+              <v-icon>mdi-vector-circle</v-icon> Add Node
             </v-btn>
-            <v-btn
-              :class="{ 'v-btn--active': mode === 'remove' }"
-              @click.stop="setMode('remove')"
-              dense
-            >
-              <v-icon>mdi-delete</v-icon> Remove
-            </v-btn>
-            <v-btn
-              :class="{ 'v-btn--active': mode === 'edit' }"
-              @click.stop="setMode('edit')"
-              dense
-            >
-              <v-icon>mdi-pencil</v-icon> Edit
-            </v-btn>
+
             <v-btn
               :class="{ 'v-btn--active': mode === 'addEdge' }"
               @click.stop="setMode('addEdge')"
-              dense
+              :size="isMobile ? 'x-small' : 'large'"
+              density="comfortable"
             >
-              <v-icon>mdi-shape-plus</v-icon> Add Edge
+              <v-icon>mdi-vector-line</v-icon> Add Edge
             </v-btn>
+
+          </div>
+          <div class="button-group bottom">
+            <v-btn
+              :class="{ 'v-btn--active': mode === 'edit' }"
+              @click.stop="setMode('edit')"
+              :size="isMobile ? 'x-small' : 'large'"
+              density="comfortable"
+            >
+              <v-icon>mdi-pencil</v-icon> Edit
+            </v-btn>
+
+            <v-btn
+              :class="{ 'v-btn--active': mode === 'remove' }"
+              @click.stop="setMode('remove')"
+              :size="isMobile ? 'x-small' : 'large'"
+              density="comfortable"
+            >
+              <v-icon>mdi-delete</v-icon> Remove
+            </v-btn>
+
             <v-btn
               @click.stop="panToNode('S')"
-              dense
+              :size="isMobile ? 'x-small' : 'large'"
+              density="comfortable"
             >
               <v-icon>mdi-page-first</v-icon> Go to start
             </v-btn>
+
             <v-btn
               @click.stop="panToNode('P')"
-              dense
+              :size="isMobile ? 'x-small' : 'large'"
+              density="comfortable"
             >
               <v-icon>mdi-page-last</v-icon> Go to end
             </v-btn>
+
             <v-btn
               :class="animationError ? 'error' : (animationRunning ? 'warning' : 'success')"
               @click.stop="toggleAnimation"
-              dense
+              :size="isMobile ? 'x-small' : 'large'"
+              density="comfortable"
             >
               <v-icon>{{ animationRunning ? 'mdi-stop' : (animationError ? 'mdi-replay' : 'mdi-play') }}</v-icon>
               {{ animationRunning ? 'Stop' : (animationError ? 'Restart' : 'Start') }}
@@ -222,6 +241,7 @@ export default {
       animationError: false,
       animatedPath: [],
       pathIndex: 0,
+      isMobile: false,
     };
   },
   computed: {
@@ -231,10 +251,15 @@ export default {
   },
   mounted() {
     this.throttledMouseMove = throttle(this.onMouseMove, 16);
+    this.detectMobile();
+  
+
+    window.addEventListener('resize', this.detectMobile);
     window.addEventListener('mousemove', this.throttledMouseMove);
     window.addEventListener('mouseup', this.stopInteraction);
   },
   beforeDestroy() {
+    window.removeEventListener('resize', this.detectMobile);
     window.removeEventListener('mousemove', this.throttledMouseMove);
     window.removeEventListener('mouseup', this.stopInteraction);
   },
@@ -625,6 +650,27 @@ export default {
       }
     },
 
+    adjustBottomButtonGroup() {
+      // Ensure bottom button group remains visible when the keyboard is open
+      if (this.isMobile) {
+        const bottomButtonGroup = document.querySelector('.button-group.bottom');
+        if (bottomButtonGroup) {
+          bottomButtonGroup.style.visibility = 'visible';
+          setTimeout(() => {
+            const rect = bottomButtonGroup.getBoundingClientRect();
+            const isVisible = rect.bottom <= window.innerHeight;
+            if (!isVisible) {
+              bottomButtonGroup.style.visibility = 'hidden';
+            }
+          }, 300); // Adjust delay as needed for keyboard to open
+        }
+      }
+    },
+
+    detectMobile() {
+      this.isMobile = window.innerWidth <= 768 || window.innerHeight <= 520;
+    },
+
     easeInOutQuad(t) {
       return t < 0.5 ? 2 * t * t : -1 + (4 - 2 * t) * t;
     },
@@ -639,12 +685,14 @@ export default {
   padding: 0;
   overflow: hidden;
 }
+
 .svg-container {
   position: relative;
   width: 100%;
   height: 100%;
   overflow: hidden;
 }
+
 .graph-svg {
   position: absolute;
   top: 0;
@@ -653,34 +701,30 @@ export default {
   height: 100%;
   z-index: 1; /* Ensure SVG content is below buttons */
 }
+
 .button-group {
-  user-select: none;
   position: absolute;
-  top: 10px;
-  left: 10px;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
   z-index: 10;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 8px;
 }
-
-.button-group .v-btn {
-  white-space: nowrap;
+.button-group.top {
+  top: 16px;
+  left: 16px;
 }
-
-.v-btn--active {
-  background-color: lightblue;
+.button-group.bottom {
+  bottom: 16px;
+  left: 16px;
 }
-
-.error {
-  background-color: #f44336 !important;
+.button-group.mobile {
+  flex-direction: row;
+  gap: 4px;
+  padding: 4px;
 }
-
-.warning {
-  background-color: #ff9800 !important;
-}
-
-.success {
-  background-color: #4caf50 !important;
+.button-group.mobile .v-btn {
+  min-width: auto; /* Adjust as needed */
+  padding: 6px 12px; /* Adjust padding */
 }
 </style>
