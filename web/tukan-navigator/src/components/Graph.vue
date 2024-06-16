@@ -51,7 +51,7 @@
             <!-- Existing SVG content -->
             <g :transform="`translate(${panX}, ${panY})`">
               <!-- Render existing edges -->
-              <Edge
+                <Edge
                 v-for="edge in validEdges"
                 :key="'edge-' + edge.id"
                 :from="findNode(edge.from)"
@@ -59,9 +59,10 @@
                 :edge="edge"
                 :highlighted="(selectedEdgeId === edge.id || highlightedEdgeId === edge.id) && (mode === 'edit' || mode === 'remove')"
                 @select="handleEdgeSelect(edge)"
+                />
               />
               <!-- Render existing nodes -->
-              <Node
+                <Node
                 v-for="node in nodes"
                 :key="'node-' + node.id"
                 :id="node.id"
@@ -72,6 +73,8 @@
                 :mode="mode"
                 @select="selectNode"
                 @mousedown.stop="startNodeDrag($event, node.id)"
+                @touchstart.stop="startNodeDrag($event, node.id)"
+                />
               />
             </g>
 
@@ -116,7 +119,8 @@
             <!-- Buttons with icons and gaps -->
             <v-btn
               :class="{ 'v-btn--active': mode === 'pan' }"
-              @click.stop="setMode('pan')"
+              @mousedown.stop="setMode('pan')"
+              @touchstart.stop="setMode('pan')"
               :size="isMobile ? 'x-small' : 'large'"
               density="comfortable"
             >
@@ -125,7 +129,8 @@
 
             <v-btn
               :class="{ 'v-btn--active': mode === 'drag' }"
-              @click.stop="setMode('drag')"
+              @mousedown.stop="setMode('drag')"
+              @touchstart.stop="setMode('drag')"
               :size="isMobile ? 'x-small' : 'large'"
               density="comfortable"
             >
@@ -134,7 +139,8 @@
 
             <v-btn
               :class="{ 'v-btn--active': mode === 'add' }"
-              @click.stop="setMode('add')"
+              @mousedown.stop="setMode('add')"
+              @touchstart.stop="setMode('add')"
               :size="isMobile ? 'x-small' : 'large'"
               density="comfortable"
             >
@@ -143,7 +149,8 @@
 
             <v-btn
               :class="{ 'v-btn--active': mode === 'addEdge' }"
-              @click.stop="setMode('addEdge')"
+              @mousedown.stop="setMode('addEdge')"
+              @touchstart.stop="setMode('addEdge')"
               :size="isMobile ? 'x-small' : 'large'"
               density="comfortable"
             >
@@ -154,7 +161,8 @@
           <div class="button-group bottom">
             <v-btn
               :class="{ 'v-btn--active': mode === 'edit' }"
-              @click.stop="setMode('edit')"
+              @mousedown.stop="setMode('edit')"
+              @touchstart.stop="setMode('edit')"
               :size="isMobile ? 'x-small' : 'large'"
               density="comfortable"
             >
@@ -163,7 +171,8 @@
 
             <v-btn
               :class="{ 'v-btn--active': mode === 'remove' }"
-              @click.stop="setMode('remove')"
+              @mousedown.stop="setMode('remove')"
+              @touchstart.stop="setMode('remove')"
               :size="isMobile ? 'x-small' : 'large'"
               density="comfortable"
             >
@@ -171,7 +180,8 @@
             </v-btn>
 
             <v-btn
-              @click.stop="panToNode('S')"
+              @mousedown.stop="panToNode('S')"
+              @touchstart.stop="panToNode('S')"
               :size="isMobile ? 'x-small' : 'large'"
               density="comfortable"
             >
@@ -179,7 +189,8 @@
             </v-btn>
 
             <v-btn
-              @click.stop="panToNode('P')"
+              @mousedown.stop="panToNode('P')"
+              @touchstart.stop="panToNode('P')"
               :size="isMobile ? 'x-small' : 'large'"
               density="comfortable"
             >
@@ -188,7 +199,8 @@
 
             <v-btn
               :class="animationError ? 'error' : (animationRunning ? 'warning' : 'success')"
-              @click.stop="toggleAnimation"
+              @mousedown.stop="toggleAnimation"
+              @touchstart.stop="toggleAnimation"
               :size="isMobile ? 'x-small' : 'large'"
               density="comfortable"
               :color="animationRunning ? 'error' : (animationError ? 'warning' : 'success')"
@@ -347,7 +359,8 @@ export default {
         this.draggingNodeId = nodeId;
         const node = this.findNode(nodeId);
         if (node) {
-          if (this.isMobile && event.targetTouches.length === 1) {
+          if (event.type === 'touchstart' && event.touches.length === 1) {
+            console.log('Mobile touch start');
             this.offsetX = event.targetTouches[0].clientX - node.x - this.panX;
             this.offsetY = event.targetTouches[0].clientY - node.y - this.panY;
           } else {
@@ -398,8 +411,7 @@ export default {
           node.x = touch.clientX - this.offsetX - this.panX;
           node.y = touch.clientY - this.offsetY - this.panY;
         }
-      }
-      if (this.isPanning) {
+      }else if (this.isPanning) {
         let clientX, clientY;
         if (event.type === 'touchmove') {
           clientX = event.touches[0].clientX;
@@ -719,6 +731,16 @@ export default {
     easeInOutQuad(t) {
       return t < 0.5 ? 2 * t * t : -1 + (4 - 2 * t) * t;
     },
+
+    handleMouseDown(event) {
+      event.preventDefault();
+      this.$emit('select');
+    },
+
+    handleTouchStart(event) {
+      event.preventDefault();
+      this.$emit('select');
+    }
   }
 };
 </script>
