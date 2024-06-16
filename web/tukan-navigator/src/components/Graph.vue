@@ -9,9 +9,12 @@
             ref="svg"
             class="graph-svg"
             @mousedown="startInteraction"
+            @touchstart="startInteraction"
             @mouseup="stopInteraction"
             @mouseleave="stopInteraction"
+            @touchend="stopInteraction"
             @mousemove="handleMouseOver"
+            @touchmove="handleMouseOver"
             @click="handleSvgClick"
           >
             <g :transform="`translate(${panX}, ${panY})`">
@@ -146,8 +149,8 @@
             >
               <v-icon>mdi-vector-line</v-icon> Add Edge
             </v-btn>
-
           </div>
+          
           <div class="button-group bottom">
             <v-btn
               :class="{ 'v-btn--active': mode === 'edit' }"
@@ -188,6 +191,7 @@
               @click.stop="toggleAnimation"
               :size="isMobile ? 'x-small' : 'large'"
               density="comfortable"
+              :color="animationRunning ? 'error' : (animationError ? 'warning' : 'success')"
             >
               <v-icon>{{ animationRunning ? 'mdi-stop' : (animationError ? 'mdi-replay' : 'mdi-play') }}</v-icon>
               {{ animationRunning ? 'Stop' : (animationError ? 'Restart' : 'Start') }}
@@ -241,7 +245,8 @@ export default {
       animationError: false,
       animatedPath: [],
       pathIndex: 0,
-      isMobile: false,
+      isMobile: true,
+      isPathSet: false,
     };
   },
   computed: {
@@ -253,15 +258,23 @@ export default {
     this.throttledMouseMove = throttle(this.onMouseMove, 16);
     this.detectMobile();
   
-
     window.addEventListener('resize', this.detectMobile);
     window.addEventListener('mousemove', this.throttledMouseMove);
     window.addEventListener('mouseup', this.stopInteraction);
+
+    // Touch event listeners
+    window.addEventListener('touchmove', this.onTouchMove, { passive: false });
+    window.addEventListener('touchend', this.stopInteraction);
+    window.addEventListener('touchcancel', this.stopInteraction);
   },
   beforeDestroy() {
     window.removeEventListener('resize', this.detectMobile);
     window.removeEventListener('mousemove', this.throttledMouseMove);
     window.removeEventListener('mouseup', this.stopInteraction);
+
+    window.removeEventListener('touchmove', this.onTouchMove);
+    window.removeEventListener('touchend', this.stopInteraction);
+    window.removeEventListener('touchcancel', this.stopInteraction);
   },
   methods: {
     findNode(id) {
@@ -334,16 +347,23 @@ export default {
         this.draggingNodeId = nodeId;
         const node = this.findNode(nodeId);
         if (node) {
-          this.offsetX = event.clientX - node.x - this.panX;
-          this.offsetY = event.clientY - node.y - this.panY;
+          if (this.isMobile && event.targetTouches.length === 1) {
+            this.offsetX = event.targetTouches[0].clientX - node.x - this.panX;
+            this.offsetY = event.targetTouches[0].clientY - node.y - this.panY;
+          } else {
+            this.offsetX = event.clientX - node.x - this.panX;
+            this.offsetY = event.clientY - node.y - this.panY;
+          }
         }
       }
     },
     startInteraction(event) {
       if (this.mode === 'pan') {
-        this.isPanning = true;
-        this.panStartX = event.clientX;
-        this.panStartY = event.clientY;
+        if (event.type === 'mousedown' || (event.type === 'touchstart' && event.touches.length === 1)) {
+          this.isPanning = true;
+          this.panStartX = event.type === 'mousedown' ? event.clientX : event.touches[0].clientX;
+          this.panStartY = event.type === 'mousedown' ? event.clientY : event.touches[0].clientY;
+        }
       }
       if (this.mode === 'drag' && this.draggingNodeId) {
         this.selectedNodeId = this.draggingNodeId;
@@ -368,6 +388,31 @@ export default {
         this.panY += dy;
         this.panStartX = event.clientX;
         this.panStartY = event.clientY;
+      }
+    },
+    onTouchMove(event) {
+      if (this.draggingNodeId !== null && this.mode === 'drag') {
+        const node = this.findNode(this.draggingNodeId);
+        if (node) {
+          const touch = event.targetTouches[0];
+          node.x = touch.clientX - this.offsetX - this.panX;
+          node.y = touch.clientY - this.offsetY - this.panY;
+        }
+      }
+      if (this.isPanning) {
+        let clientX, clientY;
+        if (event.type === 'touchmove') {
+          clientX = event.touches[0].clientX;
+          clientY = event.touches[0].clientY;
+        }
+
+        const dx = clientX - this.panStartX;
+        const dy = clientY - this.panStartY;
+        this.panStartX = clientX;
+        this.panStartY = clientY;
+
+        this.panX += dx;
+        this.panY += dy;
       }
     },
     handleMouseOver(event) {
