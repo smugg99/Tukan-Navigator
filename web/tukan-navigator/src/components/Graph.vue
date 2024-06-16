@@ -144,8 +144,12 @@ export default {
       } else if (this.mode === 'edit') {
         this.selectedNodeIdInEditMode = id;
         const newId = prompt('Enter new ID', id);
-        if (newId && !this.findNode(newId)) {
-          this.updateNodeId(id, newId);
+        if (newId && newId !== id) {
+          if (!this.findNode(newId)) {
+            this.updateNodeId(id, newId);
+          } else {
+            alert('Duplicate ID detected. Please enter a unique ID.');
+          }
         }
         this.selectedNodeIdInEditMode = null;
       } else if (this.mode === 'addEdge') {
@@ -274,8 +278,12 @@ export default {
         const x = event.clientX - svgRect.left - this.panX;
         const y = event.clientY - svgRect.top - this.panY;
         const newId = prompt('Enter new ID');
-        if (newId && !this.findNode(newId)) {
-          this.addNode(newId, x, y);
+        if (newId) {
+          if (!this.findNode(newId)) {
+            this.addNode(newId, x, y);
+          } else {
+            alert('Duplicate ID detected. Please enter a unique ID.');
+          }
         }
       } else {
         if(this.mode !== 'addEdge') {
@@ -288,6 +296,8 @@ export default {
     addNode(id, x, y) {
       if (!this.findNode(id)) {
         this.nodes.push({ id, x, y });
+      } else {
+        alert('Duplicate ID detected. Please enter a unique ID.');
       }
     },
     removeNode(id) {

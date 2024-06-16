@@ -1,30 +1,15 @@
 <template>
   <g v-if="from && to" @click="selectEdge" :class="{ 'highlighted': highlighted }">
-    <!-- Define a mask to create a cutout effect -->
-    <mask :id="'mask_' + edge.id">
-      <!-- Rectangle to cover the entire area -->
-      <rect width="100%" height="100%" fill="white" />
-      <!-- Circle to cut through the line -->
-      <circle
-        :cx="(from.x + to.x) / 2"
-        :cy="(from.y + to.y) / 2"
-        r="15"
-        fill="black"
-      />
-    </mask>
-    <!-- Apply the mask to the line -->
     <line
       :x1="from.x"
       :y1="from.y"
       :x2="to.x"
       :y2="to.y"
       stroke="black"
-      stroke-dasharray="5,5"
+      stroke-dasharray="5, 5"
       cursor="pointer"
       :class="{ 'edge-highlighted': highlighted }"
-      :mask="'url(#mask_' + edge.id + ')'"
     />
-    <!-- Background rectangle for text -->
     <rect
       :x="(from.x + to.x) / 2 - 25"
       :y="(from.y + to.y) / 2 - 15"
@@ -34,7 +19,6 @@
       cursor="pointer"
       class="rect-clickable"
     />
-    <!-- Text with adjusted size -->
     <text
       :x="(from.x + to.x) / 2"
       :y="(from.y + to.y) / 2"
