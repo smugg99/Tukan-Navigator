@@ -7,6 +7,8 @@
       <v-btn :class="{ 'v-btn--active': mode === 'remove' }" @click="setMode('remove')">Remove Node/Edge</v-btn>
       <v-btn :class="{ 'v-btn--active': mode === 'edit' }" @click="setMode('edit')">Edit Node/Edge</v-btn>
       <v-btn :class="{ 'v-btn--active': mode === 'addEdge' }" @click="setMode('addEdge')">Add Edge</v-btn>
+      <v-btn @click="this.getGraphRelationsAndPositions()">Print Graph Relations and Positions</v-btn>
+      <v-btn @click="this.getGraphRelations()">Print Graph Relations</v-btn>
     </v-row>
     <svg
       ref="svg"
@@ -337,6 +339,43 @@ export default {
       this.hoveredNodeId = null;
       this.highlightedEdgeId = null;
       this.addNodeHovered = null;
+    },
+    getGraphRelations() {
+      const nodes = this.nodes.map(node => node.id);
+      const edges = this.edges.map(edge => ({
+        from: edge.from,
+        to: edge.to,
+        weight: edge.weight
+      }));
+
+      const graphRelations = {
+        nodes,
+        edges
+      };
+      console.log(graphRelations);
+
+      return graphRelations;
+    },
+    getGraphRelationsAndPositions() {
+      const nodes = this.nodes.map(node => ({
+        id: node.id,
+        x: node.x,
+        y: node.y
+      }));
+
+      const edges = this.edges.map(edge => ({
+        from: edge.from,
+        to: edge.to,
+        weight: edge.weight
+      }));
+
+      const graphRelationsAndPositions = {
+        nodes,
+        edges
+      };
+      console.log(graphRelationsAndPositions);
+
+      return graphRelationsAndPositions;
     },
   }
 };
