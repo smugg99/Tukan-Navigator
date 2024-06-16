@@ -10,8 +10,7 @@
       <v-btn @click="getGraphRelationsAndPositions()">Print Graph Relations and Positions</v-btn>
       <v-btn @click="getGraphRelations()">Print Graph Relations</v-btn>
       <v-btn @click="panToNode('S')">Pan to Node 0</v-btn>
-      <v-btn :disabled="!animationRunning" @click="toggleAnimation">{{ animationRunning ? 'Stop Animation' : 'Start Animation' }}</v-btn>
-      <v-btn :disabled="animationRunning" @click="restartAnimation">Restart Animation</v-btn>
+      <v-btn :color="animationError ? 'error' : (animationRunning ? 'warning' : 'success')" @click="toggleAnimation">{{ animationRunning ? 'Stop' : (animationError ? 'Restart' : 'Start') }}</v-btn>
     </v-row>
     <svg
       ref="svg"
@@ -119,6 +118,7 @@ export default {
       edgeStartNode: null,
       addNodeHovered: null,
       animationRunning: false,
+      animationError: false,
       animatedPath: [],
       pathIndex: 0,
     };
@@ -390,6 +390,8 @@ export default {
     },
 
     async toggleAnimation() {
+      this.animationError = false;
+      
       if (!this.animationRunning) {
         this.animationRunning = true;
         await this.startAnimation();
@@ -397,8 +399,10 @@ export default {
         this.animationRunning = false;
       }
     },
+
     async restartAnimation() {
       this.animationRunning = false;
+      this.animationError = false;
       this.pathIndex = 0;
       await this.startAnimation();
       this.animationRunning = true;
@@ -427,9 +431,11 @@ export default {
           this.animateTukan();
         } else {
           console.error('Path data is not valid:', data);
+          setTimeout(() => { this.animationRunning = false; this.animationError = true; }, 1000);
         }
       } catch (error) {
         console.error('Error fetching path:', error);
+        setTimeout(() => { this.animationRunning = false; this.animationError = true; }, 1000);
       }
     },
     animateTukan() {
