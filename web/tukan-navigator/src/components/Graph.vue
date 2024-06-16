@@ -14,7 +14,7 @@
             @mouseleave="stopInteraction"
             @touchend="stopInteraction"
             @mousemove="handleMouseOver"
-            @touchmove="handleMouseOver"
+            @touchmove="handleTouchMove"
             @click="handleSvgClick"
           >
             <g :transform="`translate(${panX}, ${panY})`">
@@ -298,6 +298,10 @@ export default {
       } else if (this.mode === 'edit') {
         if (id === 'S' || id === 'P') {
           alert('Node cannot be updated.');
+          this.edgeStartNode = null;
+          this.selectedNodeId = null;
+          this.hoveredNodeId = null;
+          this.selectedNodeIdInEditMode = null;
           return;
         }
 
@@ -324,21 +328,41 @@ export default {
             if (!existingEdge) {
               const weight = prompt('Enter weight for new edge');
               if (weight) {
-                this.addEdge(this.edgeStartNode, id, parseInt(weight));
-                this.edgeStartNode = null;
-                this.selectedNodeId = null;
+                const parsedWeight = parseInt(weight);
+                if (Number.isInteger(parsedWeight) && parsedWeight > 0) {
+                  this.addEdge(this.edgeStartNode, id, parsedWeight);
+                  this.edgeStartNode = null;
+                  this.selectedNodeId = null;
+                  this.hoveredNodeId = null;
+                  this.selectedNodeIdInEditMode = null;
+                } else {
+                  alert('Weight must be a positive integer.');
+                  this.edgeStartNode = null;
+                  this.selectedNodeId = null;
+                  this.hoveredNodeId = null;
+                  this.selectedNodeIdInEditMode = null;
+                }
               }
             } else {
-              alert('An edge already exists between these nodes.');
+                alert('An edge already exists between these nodes.');
+                this.edgeStartNode = null;
+                this.selectedNodeId = null;
+                this.hoveredNodeId = null;
+                this.selectedNodeIdInEditMode = null;
             }
           } else {
-            alert('Cannot connect a node to itself. Select a different node.');
-            this.edgeStartNode = null;
-            this.selectedNodeId = null;
+              alert('Cannot connect a node to itself. Select a different node.');
+              this.edgeStartNode = null;
+              this.selectedNodeId = null;
+              this.hoveredNodeId = null;
+              this.selectedNodeIdInEditMode = null;
           }
         }
       } else if (this.mode === 'pan' || this.mode === 'drag') {
         this.selectedNodeId = id;
+        this.edgeStartNode = null;
+        this.hoveredNodeId = null;
+        this.selectedNodeIdInEditMode = null;
       }
     },
     handleEdgeSelect(edge) {
@@ -367,6 +391,10 @@ export default {
             this.offsetX = event.clientX - node.x - this.panX;
             this.offsetY = event.clientY - node.y - this.panY;
           }
+          console.log(event.type, this.offsetX, this.offsetY);
+          if (event.type === 'touchend') {
+            this.draggingNodeId = null;
+          }
         }
       }
     },
@@ -385,6 +413,11 @@ export default {
     stopInteraction() {
       this.isPanning = false;
       this.draggingNodeId = null;
+      this.selectedEdgeId = null;
+      this.selectedNodeId = null;
+      this.highlightedEdgeId = null;
+      this.selectedNodeIdInEditMode = null;
+      this.addNodeHovered = null;
     },
     onMouseMove(event) {
       if (this.draggingNodeId !== null && this.mode === 'drag') {
@@ -474,6 +507,10 @@ export default {
             this.addNode(newId, x, y);
           } else {
             alert('Duplicate ID detected. Please enter a unique ID.');
+            this.edgeStartNode = null;
+            this.selectedNodeId = null;
+            this.hoveredNodeId = null;
+            this.selectedNodeIdInEditMode = null;
           }
         }
       } else {
@@ -494,6 +531,10 @@ export default {
     removeNode(id) {
       if (id === 'S' || id === 'P') {
         alert('Node cannot be deleted.');
+        this.edgeStartNode = null;
+        this.selectedNodeId = null;
+        this.hoveredNodeId = null;
+        this.selectedNodeIdInEditMode = null;
         return;
       }
 
@@ -631,7 +672,7 @@ export default {
         const node = this.animatedPath[this.pathIndex];
         await this.panToucanToNode(node.id);
         this.pathIndex++;
-        setTimeout(this.animateToucan, 1500);
+        setTimeout(this.animateToucan, 1000);
       } else {
         this.animationRunning = false;
       }
@@ -732,15 +773,10 @@ export default {
       return t < 0.5 ? 2 * t * t : -1 + (4 - 2 * t) * t;
     },
 
-    handleMouseDown(event) {
+    handleTouchMove(event) {
       event.preventDefault();
-      this.$emit('select');
+      this.handleMouseOver(event.touches[0]);
     },
-
-    handleTouchStart(event) {
-      event.preventDefault();
-      this.$emit('select');
-    }
   }
 };
 </script>

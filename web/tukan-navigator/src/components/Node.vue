@@ -47,16 +47,16 @@ circle {
   transition: fill 0.3s ease;
 }
 
-circle.node-selected {
+/* circle.node-selected {
   fill: red;
-}
+} */
 
 circle.node-highlighted {
-  fill: green;
+  fill: rgb(75, 168, 255);
 }
 
 circle:not(.node-selected):not(.node-highlighted) {
-  fill: blue;
+  fill: rgb(0, 132, 255);
 }
 
 text {

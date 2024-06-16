@@ -83,7 +83,7 @@ line {
 }
 
 line.edge-highlighted {
-  stroke: orange;
+  stroke: slategray;
 }
 
 text {
@@ -93,7 +93,7 @@ text {
 }
 
 text.edge-highlighted {
-  fill: orange;
+  fill: gray;
 }
 
 .rect-clickable {
