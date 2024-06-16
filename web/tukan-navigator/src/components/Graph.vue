@@ -14,6 +14,37 @@
             @mousemove="handleMouseOver"
             @click="handleSvgClick"
           >
+            <g :transform="`translate(${panX}, ${panY})`">
+              <!-- Define grid pattern -->
+              <defs>
+                <pattern
+                  id="gridPattern"
+                  width="40"
+                  height="40"
+                  patternUnits="userSpaceOnUse"
+                >
+                  <rect width="40" height="40" fill="#f0f0f0" />
+                  <path
+                    d="M 40 0 L 0 0 0 40"
+                    fill="none"
+                    stroke="#cccccc"
+                    stroke-width="1"
+                  />
+                </pattern>
+              </defs>
+            </g>
+              
+            <g :transform="`translate(${panX}, ${panY})`">
+              <!-- Apply grid pattern as background -->
+              <rect
+                height="100000"
+                width="100000"
+                x="-50000"
+                y="-50000"
+                fill="url(#gridPattern)"
+              />
+            </g>
+            
             <!-- Existing SVG content -->
             <g :transform="`translate(${panX}, ${panY})`">
               <!-- Render existing edges -->
@@ -126,7 +157,13 @@
               @click.stop="panToNode('S')"
               dense
             >
-              <v-icon>mdi-arrow-up-bold-circle</v-icon> Go to start
+              <v-icon>mdi-page-first</v-icon> Go to start
+            </v-btn>
+            <v-btn
+              @click.stop="panToNode('P')"
+              dense
+            >
+              <v-icon>mdi-page-last</v-icon> Go to end
             </v-btn>
             <v-btn
               :class="animationError ? 'error' : (animationRunning ? 'warning' : 'success')"
@@ -327,7 +364,7 @@ export default {
               Math.sqrt(
                 Math.pow(toNode.y - fromNode.y, 2) + Math.pow(toNode.x - fromNode.x, 2)
               );
-            return dist < 5;
+            return dist < 20;
           });
           this.highlightedEdgeId = hoveredEdge ? hoveredEdge.id : null;
         } else {
