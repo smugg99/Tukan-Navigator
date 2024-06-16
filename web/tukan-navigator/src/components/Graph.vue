@@ -79,43 +79,61 @@
 
           <!-- Button group outside SVG for z-index stacking -->
           <div class="button-group">
-            <!-- Buttons here -->
+            <!-- Buttons with icons and gaps -->
             <v-btn
               :class="{ 'v-btn--active': mode === 'pan' }"
               @click.stop="setMode('pan')"
               dense
-            >Move</v-btn>
+            >
+              <v-icon>mdi-cursor-move</v-icon> Move
+            </v-btn>
             <v-btn
               :class="{ 'v-btn--active': mode === 'drag' }"
               @click.stop="setMode('drag')"
               dense
-            >Drag</v-btn>
+            >
+              <v-icon>mdi-drag</v-icon> Drag
+            </v-btn>
             <v-btn
               :class="{ 'v-btn--active': mode === 'add' }"
               @click.stop="setMode('add')"
               dense
-            >Add Node</v-btn>
+            >
+              <v-icon>mdi-plus</v-icon> Add Node
+            </v-btn>
             <v-btn
               :class="{ 'v-btn--active': mode === 'remove' }"
               @click.stop="setMode('remove')"
               dense
-            >Remove</v-btn>
+            >
+              <v-icon>mdi-delete</v-icon> Remove
+            </v-btn>
             <v-btn
               :class="{ 'v-btn--active': mode === 'edit' }"
               @click.stop="setMode('edit')"
               dense
-            >Edit</v-btn>
+            >
+              <v-icon>mdi-pencil</v-icon> Edit
+            </v-btn>
             <v-btn
               :class="{ 'v-btn--active': mode === 'addEdge' }"
               @click.stop="setMode('addEdge')"
               dense
-            >Add Edge</v-btn>
-            <v-btn @click.stop="panToNode('S')" dense>Go to start</v-btn>
+            >
+              <v-icon>mdi-shape-plus</v-icon> Add Edge
+            </v-btn>
+            <v-btn
+              @click.stop="panToNode('S')"
+              dense
+            >
+              <v-icon>mdi-arrow-up-bold-circle</v-icon> Go to start
+            </v-btn>
             <v-btn
               :class="animationError ? 'error' : (animationRunning ? 'warning' : 'success')"
               @click.stop="toggleAnimation"
               dense
             >
+              <v-icon>{{ animationRunning ? 'mdi-stop' : (animationError ? 'mdi-replay' : 'mdi-play') }}</v-icon>
               {{ animationRunning ? 'Stop' : (animationError ? 'Restart' : 'Start') }}
             </v-btn>
           </div>
@@ -124,6 +142,7 @@
     </v-row>
   </v-container>
 </template>
+
 <script>
 import { throttle } from 'lodash';
 import Node from './Node.vue';
@@ -600,8 +619,31 @@ export default {
 .button-group {
   user-select: none;
   position: absolute;
-  top: 10px; /* Adjust as needed */
-  left: 10px; /* Adjust as needed */
-  z-index: 2; /* Ensure buttons are above SVG content */
+  top: 10px;
+  left: 10px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  z-index: 10;
+}
+
+.button-group .v-btn {
+  white-space: nowrap;
+}
+
+.v-btn--active {
+  background-color: lightblue;
+}
+
+.error {
+  background-color: #f44336 !important;
+}
+
+.warning {
+  background-color: #ff9800 !important;
+}
+
+.success {
+  background-color: #4caf50 !important;
 }
 </style>
