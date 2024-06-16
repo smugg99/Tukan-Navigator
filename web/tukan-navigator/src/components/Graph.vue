@@ -87,6 +87,7 @@
               :y2="findNode(hoveredNodeId).y + panY"
               stroke="black"
               opacity="0.5"
+              z-index="1"
               stroke-dasharray="5,5"
               pointer-events="none"
             />
@@ -100,18 +101,12 @@
               fill="transparent"
               stroke="black"
               opacity="0.5"
+              z-index="1"
               stroke-dasharray="5,5"
               pointer-events="none"
             />
 
-            <!-- Indicator for current position -->
-            <circle
-              v-if="isPathSet"
-              :cx="currentPosition.x + panX"
-              :cy="currentPosition.y + panY"
-              r="10"
-              fill="blue"
-            />
+            <Toucan :x="toucanX" :y="toucanY" />
           </svg>
 
           <!-- Button group outside SVG for z-index stacking -->
@@ -243,10 +238,12 @@ export default {
       isPanning: false,
       offsetX: 0,
       offsetY: 0,
-      panX: 0,
-      panY: 0,
+      panX: 500,
+      panY: 500,
       panStartX: 0,
       panStartY: 0,
+      toucanX: 0,
+      toucanY: 0,
       width: 800,
       height: 600,
       mode: 'pan',
@@ -264,6 +261,12 @@ export default {
   computed: {
     validEdges() {
       return this.edges.filter(edge => this.findNode(edge.from) && this.findNode(edge.to));
+    },
+    centerX() {
+      return -this.panX;
+    },
+    centerY() {
+      return -this.panY;
     }
   },
   mounted() {
@@ -643,13 +646,9 @@ export default {
         
         const data = await response.json();
         if (data.path) {
-          // Clear existing animation data
           this.animatedPath = [];
-
-          // Start animation from the 'S' node
           this.animatedPath.push(this.findNode('S'));
 
-          // Append the shortest path nodes to animatedPath
           this.animatedPath.push(...data.path.map(nodeId => this.findNode(nodeId)));
           this.pathIndex = 0;
           
@@ -670,46 +669,11 @@ export default {
     async animateToucan() {
       if (this.animationRunning && this.pathIndex < this.animatedPath.length) {
         const node = this.animatedPath[this.pathIndex];
-        await this.panToucanToNode(node.id);
+        await this.panToNode(node.id);
         this.pathIndex++;
         setTimeout(this.animateToucan, 1000);
       } else {
         this.animationRunning = false;
-      }
-    },
-
-    async panToucanToNode(nodeId) {
-      const node = this.findNode(nodeId);
-      if (node) {
-        const svgRect = this.$refs.svg.getBoundingClientRect();
-        const centerX = svgRect.width / 2;
-        const centerY = svgRect.height / 2;
-
-        const currentPanX = this.panX;
-        const currentPanY = this.panY;
-
-        const targetX = -node.x + centerX - currentPanX;
-        const targetY = -node.y + centerY - currentPanY;
-
-        const duration = 500; // Duration in milliseconds
-        let startTime = null;
-
-        const animate = (currentTime) => {
-          if (!startTime) startTime = currentTime;
-          const elapsedTime = currentTime - startTime;
-          const progress = Math.min(elapsedTime / duration, 1);
-
-          const easingProgress = this.easeInOutQuad(progress);
-
-          this.panX = currentPanX + targetX * easingProgress;
-          this.panY = currentPanY + targetY * easingProgress;
-
-          if (progress < 1) {
-            requestAnimationFrame(animate);
-          }
-        };
-
-        requestAnimationFrame(animate);
       }
     },
 
@@ -738,6 +702,11 @@ export default {
 
           this.panX = currentPanX + targetX * easingProgress;
           this.panY = currentPanY + targetY * easingProgress;
+
+          const dx = (node.x + this.panX) - this.toucanX;
+          const dy = (node.y + this.panY) - this.toucanY;
+          this.toucanX += dx * easingProgress;
+          this.toucanY += dy * easingProgress;
 
           if (progress < 1) {
             requestAnimationFrame(animate);

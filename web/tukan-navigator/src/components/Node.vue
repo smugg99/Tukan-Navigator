@@ -43,13 +43,14 @@ export default {
 
 <style scoped>
 circle {
+  z-index: 2;
   user-select: none;
   transition: fill 0.3s ease;
 }
 
-/* circle.node-selected {
-  fill: red;
-} */
+circle.node-selected {
+  fill: rgb(75, 168, 255);
+}
 
 circle.node-highlighted {
   fill: rgb(75, 168, 255);
