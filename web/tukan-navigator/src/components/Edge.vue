@@ -11,8 +11,8 @@
       :class="{ 'edge-highlighted': highlighted }"
     />
     <rect
-      :x="(from.x + to.x) / 2 - 25"
-      :y="(from.y + to.y) / 2 - 15"
+      :x="middleX - 25"
+      :y="middleY - 25"
       width="50"
       height="30"
       fill="transparent"
@@ -20,8 +20,8 @@
       class="rect-clickable"
     />
     <text
-      :x="(from.x + to.x) / 2"
-      :y="(from.y + to.y) / 2"
+      :x="middleX"
+      :y="middleY"
       text-anchor="middle"
       fill="black"
       cursor="pointer"
@@ -29,6 +29,7 @@
       dominant-baseline="central"
       font-size="16px"
       font-weight="bold"
+      :transform="`rotate(${adjustedAngle}, ${middleX}, ${middleY}) translate(0, -10)`"
     >
       {{ edge.weight }}
     </text>
@@ -43,10 +44,32 @@ export default {
     edge: Object,
     highlighted: Boolean,
   },
+  computed: {
+    angle() {
+      const dx = this.to.x - this.from.x;
+      const dy = this.to.y - this.from.y;
+      return (Math.atan2(dy, dx) * 180) / Math.PI;
+    },
+    adjustedAngle() {
+      let angle = this.angle;
+      if (angle > 90) {
+        angle -= 180;
+      } else if (angle < -90) {
+        angle += 180;
+      }
+      return angle;
+    },
+    middleX() {
+      return (this.from.x + this.to.x) / 2;
+    },
+    middleY() {
+      return (this.from.y + this.to.y) / 2;
+    }
+  },
   methods: {
     selectEdge() {
       this.$emit('select', this.edge);
-    }
+    },
   },
 };
 </script>
