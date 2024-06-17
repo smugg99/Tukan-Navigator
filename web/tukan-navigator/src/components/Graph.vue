@@ -8,6 +8,7 @@
           <svg
             ref="svg"
             class="graph-svg"
+            :class="{ 'hand-cursor': mode === 'pan' }"
             @mousedown="startInteraction"
             @touchstart="startInteraction"
             @mouseup="stopInteraction"
@@ -70,6 +71,7 @@
                 :y="node.y"
                 :selected="node.id === selectedNodeId || node.id === edgeStartNode"
                 :highlighted="node.id === hoveredNodeId || node.id === selectedNodeIdInEditMode"
+                :traversed="node.traversed"
                 :mode="mode"
                 @select="selectNode"
                 @mousedown.stop="startNodeDrag($event, node.id)"
@@ -115,7 +117,6 @@
             <v-btn
               :class="{ 'v-btn--active': mode === 'pan' }"
               @mousedown.stop="setMode('pan')"
-              @touchstart.stop="setMode('pan')"
               :size="isMobile ? 'x-small' : 'large'"
               :disabled="animationRunning && !animationError ? 'disabled' : null"
               density="comfortable"
@@ -126,7 +127,6 @@
             <v-btn
               :class="{ 'v-btn--active': mode === 'drag' }"
               @mousedown.stop="setMode('drag')"
-              @touchstart.stop="setMode('drag')"
               :size="isMobile ? 'x-small' : 'large'"
               :disabled="animationRunning && !animationError ? 'disabled' : null"
               density="comfortable"
@@ -137,7 +137,6 @@
             <v-btn
               :class="{ 'v-btn--active': mode === 'add' }"
               @mousedown.stop="setMode('add')"
-              @touchstart.stop="setMode('add')"
               :size="isMobile ? 'x-small' : 'large'"
               :disabled="animationRunning && !animationError ? 'disabled' : null"
               density="comfortable"
@@ -148,20 +147,16 @@
             <v-btn
               :class="{ 'v-btn--active': mode === 'addEdge' }"
               @mousedown.stop="setMode('addEdge')"
-              @touchstart.stop="setMode('addEdge')"
               :size="isMobile ? 'x-small' : 'large'"
               :disabled="animationRunning && !animationError ? 'disabled' : null"
               density="comfortable"
             >
               <v-icon>mdi-vector-line</v-icon> Add Edge
             </v-btn>
-          </div>
-          
-          <div class="button-group bottom">
+
             <v-btn
               :class="{ 'v-btn--active': mode === 'edit' }"
               @mousedown.stop="setMode('edit')"
-              @touchstart.stop="setMode('edit')"
               :size="isMobile ? 'x-small' : 'large'"
               :disabled="animationRunning && !animationError ? 'disabled' : null"
               density="comfortable"
@@ -172,17 +167,17 @@
             <v-btn
               :class="{ 'v-btn--active': mode === 'remove' }"
               @mousedown.stop="setMode('remove')"
-              @touchstart.stop="setMode('remove')"
               :size="isMobile ? 'x-small' : 'large'"
               :disabled="animationRunning && !animationError ? 'disabled' : null"
               density="comfortable"
             >
               <v-icon>mdi-delete</v-icon> Remove
             </v-btn>
-
-            <v-btn
+          </div>
+          
+          <div class="button-group bottom">
+            <!-- <v-btn
               @mousedown.stop="panToNode('S')"
-              @touchstart.stop="panToNode('S')"
               :size="isMobile ? 'x-small' : 'large'"
               :disabled="animationRunning && !animationError ? 'disabled' : null"
               density="comfortable"
@@ -192,18 +187,16 @@
 
             <v-btn
               @mousedown.stop="panToNode('P')"
-              @touchstart.stop="panToNode('P')"
               :size="isMobile ? 'x-small' : 'large'"
               :disabled="animationRunning && !animationError ? 'disabled' : null"
               density="comfortable"
             >
               <v-icon>mdi-page-last</v-icon> Go to end
-            </v-btn>
+            </v-btn> -->
 
             <v-btn
               :class="animationError ? 'error' : (animationRunning ? 'warning' : 'success')"
               @mousedown.stop="toggleAnimation"
-              @touchstart.stop="toggleAnimation"
               :size="isMobile ? 'x-small' : 'large'"
               density="comfortable"
               :color="animationRunning ? 'error' : (animationError ? 'warning' : 'success')"
@@ -264,6 +257,7 @@ export default {
       pathIndex: 0,
       isMobile: true,
       isPathSet: false,
+      data: null
     };
   },
   computed: {
@@ -302,6 +296,14 @@ export default {
   methods: {
     findNode(id) {
       return this.nodes.find(node => node.id === id);
+    },
+    resetNodes() {
+      this.animationRunning = false;
+      this.animatedPath = [];
+
+      this.nodes.forEach(node => {
+        node.traversed = false;
+      });
     },
     selectNode(id) {
       if (this.mode === 'remove') {
@@ -664,18 +666,25 @@ export default {
 
           this.animatedPath.push(...data.path.map(nodeId => this.findNode(nodeId)));
           this.pathIndex = 0;
+
+          this.data = data;
           
           this.animationRunning = true;
           this.animationError = false;
-
           this.animateToucan();
         } else {
           console.error('Path data is not valid:', data);
-          setTimeout(() => { this.animationRunning = false; this.animationError = true; }, 200);
+          setTimeout(() => {
+            this.animationError = true;
+            this.resetNodes();
+          }, 200);
         }
       } catch (error) {
         console.error('Error fetching path:', error);
-        setTimeout(() => { this.animationRunning = false; this.animationError = true; }, 200);
+        setTimeout(() => {
+          this.animationError = true;
+          this.resetNodes();
+        }, 200);
       }
     },
 
@@ -683,55 +692,63 @@ export default {
       if (this.animationRunning && this.pathIndex < this.animatedPath.length) {
         const node = this.animatedPath[this.pathIndex];
         await this.panToNode(node.id);
+        
+        node.traversed = true;
+
         this.pathIndex++;
         setTimeout(this.animateToucan, 1000);
       } else {
         this.animationRunning = false;
+        setTimeout(this.resetNodes, 2000);
+        alert('Distance traveled: ' + this.data.distance);
       }
     },
 
     async panToNode(nodeId) {
       const node = this.findNode(nodeId);
       if (node) {
-      if (nodeId === 'S') {
-        this.toucanX = node.x + this.panX;
-        this.toucanY = node.y + this.panY;
-      } else {
-        const svgRect = this.$refs.svg.getBoundingClientRect();
-        const centerX = svgRect.width / 2;
-        const centerY = svgRect.height / 2;
+        if (nodeId === 'S') {
+          this.toucanX = node.x + this.panX;
+          this.toucanY = node.y + this.panY;
+        } else {
+          const svgRect = this.$refs.svg.getBoundingClientRect();
+          const centerX = svgRect.width / 2;
+          const centerY = svgRect.height / 2;
 
-        const currentPanX = this.panX;
-        const currentPanY = this.panY;
+          const currentPanX = this.panX;
+          const currentPanY = this.panY;
 
-        const targetX = -node.x + centerX - currentPanX;
-        const targetY = -node.y + centerY - currentPanY;
+          const targetX = -node.x + centerX - currentPanX;
+          const targetY = -node.y + centerY - currentPanY;
 
-        const duration = 500;
-        let startTime = null;
+          const duration = 750;
+          let startTime = null;
 
-        const animate = (currentTime) => {
-        if (!startTime) startTime = currentTime;
-        const elapsedTime = currentTime - startTime;
-        const progress = Math.min(elapsedTime / duration, 1);
+          const animate = (currentTime) => {
+            if (!startTime) {
+              startTime = currentTime;
+            }
+            
+            const elapsedTime = currentTime - startTime;
+            const progress = Math.min(elapsedTime / duration, 1);
 
-        const easingProgress = this.easeInOutQuad(progress);
+            const easingProgress = this.easeInOutQuad(progress);
 
-        this.panX = currentPanX + targetX * easingProgress;
-        this.panY = currentPanY + targetY * easingProgress;
+            this.panX = currentPanX + targetX * easingProgress;
+            this.panY = currentPanY + targetY * easingProgress;
 
-        const dx = (node.x + this.panX) - this.toucanX;
-        const dy = (node.y + this.panY) - this.toucanY;
-        this.toucanX += dx * easingProgress;
-        this.toucanY += dy * easingProgress;
+            const dx = (node.x + this.panX) - this.toucanX;
+            const dy = (node.y + this.panY) - this.toucanY;
+            this.toucanX += dx * easingProgress;
+            this.toucanY += dy * easingProgress;
 
-        if (progress < 1) {
+            if (progress < 1) {
+              requestAnimationFrame(animate);
+            }
+          };
+
           requestAnimationFrame(animate);
         }
-        };
-
-        requestAnimationFrame(animate);
-      }
       }
     },
 
@@ -781,6 +798,10 @@ export default {
   width: 100%;
   height: 100%;
   overflow: hidden;
+}
+
+.hand-cursor {
+  cursor: move;
 }
 
 .graph-svg {

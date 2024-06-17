@@ -14,13 +14,11 @@ export default {
     x: Number,
     y: Number,
   },
+  methods: {
+    moveTo(x, y) {
+      this.x = x;
+      this.y = y;
+    }
+  }
 };
 </script>
-
-<style scoped>
-circle {
-  position: absolute;
-  z-index: 6;
-  user-select: none;
-}
-</style>

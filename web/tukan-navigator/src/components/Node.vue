@@ -4,7 +4,11 @@
       :cx="x"
       :cy="y"
       r="20"
-      :class="{ 'node-selected': selected, 'node-highlighted': highlighted }"
+      :class="{ 
+        'node-selected': selected, 
+        'node-highlighted': highlighted,
+        'node-traversed': traversed
+      }"
     />
     <text
       :x="x"
@@ -24,6 +28,7 @@ export default {
     y: Number,
     selected: Boolean,
     highlighted: Boolean,
+    traversed: Boolean,
     mode: String,
   },
   computed: {
@@ -56,7 +61,11 @@ circle.node-highlighted {
   fill: rgb(75, 168, 255);
 }
 
-circle:not(.node-selected):not(.node-highlighted) {
+circle.node-traversed {
+  fill: rgb(0, 60, 255);
+}
+
+circle:not(.node-selected):not(.node-highlighted):not(.node-traversed) {
   fill: rgb(0, 132, 255);
 }
 

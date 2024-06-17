@@ -1,5 +1,5 @@
 <template>
-  <g v-if="from && to" @click="selectEdge" :class="{ 'highlighted': highlighted }">
+  <g v-if="from && to" @click="selectEdge" :class="{ 'highlighted': highlighted, 'traversed': traversed }">
     <line
       :x1="from.x"
       :y1="from.y"
@@ -8,7 +8,10 @@
       stroke="black"
       stroke-dasharray="5, 5"
       cursor="pointer"
-      :class="{ 'edge-highlighted': highlighted }"
+      :class="{ 
+        'edge-highlighted': highlighted, 
+        'edge-traversed': traversed 
+      }"
     />
     <rect
       :x="middleX - 25"
@@ -25,7 +28,10 @@
       text-anchor="middle"
       fill="black"
       cursor="pointer"
-      :class="{ 'edge-highlighted': highlighted }"
+      :class="{ 
+        'edge-highlighted': highlighted, 
+        'edge-traversed': traversed 
+      }"
       dominant-baseline="central"
       font-size="16px"
       font-weight="bold"
@@ -43,6 +49,7 @@ export default {
     to: Object,
     edge: Object,
     highlighted: Boolean,
+    traversed: Boolean,
   },
   computed: {
     angle() {
@@ -86,6 +93,10 @@ line.edge-highlighted {
   stroke: slategray;
 }
 
+line.edge-traversed {
+  stroke: yellow; /* Change stroke color for traversed edges */
+}
+
 text {
   cursor: pointer;
   user-select: none;
@@ -94,6 +105,10 @@ text {
 
 text.edge-highlighted {
   fill: gray;
+}
+
+text.edge-traversed {
+  fill: yellow; /* Change text color for traversed edges */
 }
 
 .rect-clickable {
