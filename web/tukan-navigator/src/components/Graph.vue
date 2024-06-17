@@ -106,7 +106,7 @@
               pointer-events="none"
             />
 
-            <Toucan :x="toucanX" :y="toucanY" />
+            <Toucan v-if="animationRunning" :x="toucanX" :y="toucanY" />
           </svg>
 
           <!-- Button group outside SVG for z-index stacking -->
@@ -117,6 +117,7 @@
               @mousedown.stop="setMode('pan')"
               @touchstart.stop="setMode('pan')"
               :size="isMobile ? 'x-small' : 'large'"
+              :disabled="animationRunning && !animationError ? 'disabled' : null"
               density="comfortable"
             >
               <v-icon>mdi-cursor-move</v-icon> Move
@@ -127,6 +128,7 @@
               @mousedown.stop="setMode('drag')"
               @touchstart.stop="setMode('drag')"
               :size="isMobile ? 'x-small' : 'large'"
+              :disabled="animationRunning && !animationError ? 'disabled' : null"
               density="comfortable"
             >
               <v-icon>mdi-drag-variant</v-icon> Drag
@@ -137,6 +139,7 @@
               @mousedown.stop="setMode('add')"
               @touchstart.stop="setMode('add')"
               :size="isMobile ? 'x-small' : 'large'"
+              :disabled="animationRunning && !animationError ? 'disabled' : null"
               density="comfortable"
             >
               <v-icon>mdi-vector-circle</v-icon> Add Node
@@ -147,6 +150,7 @@
               @mousedown.stop="setMode('addEdge')"
               @touchstart.stop="setMode('addEdge')"
               :size="isMobile ? 'x-small' : 'large'"
+              :disabled="animationRunning && !animationError ? 'disabled' : null"
               density="comfortable"
             >
               <v-icon>mdi-vector-line</v-icon> Add Edge
@@ -159,6 +163,7 @@
               @mousedown.stop="setMode('edit')"
               @touchstart.stop="setMode('edit')"
               :size="isMobile ? 'x-small' : 'large'"
+              :disabled="animationRunning && !animationError ? 'disabled' : null"
               density="comfortable"
             >
               <v-icon>mdi-pencil</v-icon> Edit
@@ -169,6 +174,7 @@
               @mousedown.stop="setMode('remove')"
               @touchstart.stop="setMode('remove')"
               :size="isMobile ? 'x-small' : 'large'"
+              :disabled="animationRunning && !animationError ? 'disabled' : null"
               density="comfortable"
             >
               <v-icon>mdi-delete</v-icon> Remove
@@ -178,6 +184,7 @@
               @mousedown.stop="panToNode('S')"
               @touchstart.stop="panToNode('S')"
               :size="isMobile ? 'x-small' : 'large'"
+              :disabled="animationRunning && !animationError ? 'disabled' : null"
               density="comfortable"
             >
               <v-icon>mdi-page-first</v-icon> Go to start
@@ -187,6 +194,7 @@
               @mousedown.stop="panToNode('P')"
               @touchstart.stop="panToNode('P')"
               :size="isMobile ? 'x-small' : 'large'"
+              :disabled="animationRunning && !animationError ? 'disabled' : null"
               density="comfortable"
             >
               <v-icon>mdi-page-last</v-icon> Go to end
@@ -402,6 +410,10 @@ export default {
       }
     },
     startInteraction(event) {
+      if (this.animationRunning) {
+        return;
+      }
+
       if (this.mode === 'pan') {
         if (event.type === 'mousedown' || (event.type === 'touchstart' && event.touches.length === 1)) {
           this.isPanning = true;
@@ -620,7 +632,6 @@ export default {
       this.animationError = false;
       
       if (!this.animationRunning) {
-        this.animationRunning = true;
         await this.startAnimation();
       } else {
         this.animationRunning = false;
@@ -643,9 +654,11 @@ export default {
             }))
           })
         });
-        
+
         const data = await response.json();
         if (data.path) {
+          this.animationRunning = true;
+
           this.animatedPath = [];
           this.animatedPath.push(this.findNode('S'));
 
@@ -680,6 +693,10 @@ export default {
     async panToNode(nodeId) {
       const node = this.findNode(nodeId);
       if (node) {
+      if (nodeId === 'S') {
+        this.toucanX = node.x + this.panX;
+        this.toucanY = node.y + this.panY;
+      } else {
         const svgRect = this.$refs.svg.getBoundingClientRect();
         const centerX = svgRect.width / 2;
         const centerY = svgRect.height / 2;
@@ -694,26 +711,27 @@ export default {
         let startTime = null;
 
         const animate = (currentTime) => {
-          if (!startTime) startTime = currentTime;
-          const elapsedTime = currentTime - startTime;
-          const progress = Math.min(elapsedTime / duration, 1);
+        if (!startTime) startTime = currentTime;
+        const elapsedTime = currentTime - startTime;
+        const progress = Math.min(elapsedTime / duration, 1);
 
-          const easingProgress = this.easeInOutQuad(progress);
+        const easingProgress = this.easeInOutQuad(progress);
 
-          this.panX = currentPanX + targetX * easingProgress;
-          this.panY = currentPanY + targetY * easingProgress;
+        this.panX = currentPanX + targetX * easingProgress;
+        this.panY = currentPanY + targetY * easingProgress;
 
-          const dx = (node.x + this.panX) - this.toucanX;
-          const dy = (node.y + this.panY) - this.toucanY;
-          this.toucanX += dx * easingProgress;
-          this.toucanY += dy * easingProgress;
+        const dx = (node.x + this.panX) - this.toucanX;
+        const dy = (node.y + this.panY) - this.toucanY;
+        this.toucanX += dx * easingProgress;
+        this.toucanY += dy * easingProgress;
 
-          if (progress < 1) {
-            requestAnimationFrame(animate);
-          }
+        if (progress < 1) {
+          requestAnimationFrame(animate);
+        }
         };
 
         requestAnimationFrame(animate);
+      }
       }
     },
 
