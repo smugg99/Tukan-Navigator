@@ -1,5 +1,5 @@
 <template>
-  <v-app-bar :elevation="2" prominent>
+  <v-app-bar :elevation="2" prominent scroll-threshold="0">
     <template v-slot:prepend>
     </template>
 

@@ -1,4 +1,5 @@
 <template>
+  <input type="file" ref="fileInput" @change="loadGraph" style="display: none;">
   <v-container fluid class="fill-height">
     <v-row class="fill-height">
       <v-col class="fill-height">
@@ -58,6 +59,24 @@
             <Toucan v-if="animationRunning" :x="toucanX" :y="toucanY" />
           </svg>
 
+          <div class="button-group left">
+            <v-btn v-tooltip:end="'Save graph to file'" @mousedown.stop="saveGraph();"
+              :size="isMobile ? 'small' : 'large'" density="default">
+              <v-icon>mdi-content-save</v-icon> Save
+            </v-btn>
+
+            <input type="file" id="fileInput" @change="loadGraph($event)" style="display: none;">
+            <v-btn v-tooltip:end="'Load graph from file'" @click="triggerFileInput"
+              :size="isMobile ? 'small' : 'large'" density="default">
+              <v-icon>mdi-upload</v-icon> Load
+            </v-btn>
+
+            <v-btn v-tooltip:end="'Share graph as URL'" @mousedown.stop="shareGraph()"
+              :size="isMobile ? 'small' : 'large'" density="default">
+              <v-icon>mdi-share</v-icon> Share
+            </v-btn>
+          </div>
+
           <!-- Button group outside SVG for z-index stacking -->
           <div class="button-group top">
             <!-- Buttons with icons and gaps -->
@@ -100,23 +119,15 @@
           </div>
 
           <div class="button-group bottom">
-            <!-- <v-btn
-              @mousedown.stop="panToNode('S')"
-              :size="isMobile ? 'x-small' : 'large'"
-              :disabled="animationRunning && !animationError ? 'disabled' : null"
-              density="comfortable"
-            >
+            <v-btn @mousedown.stop="panToNode('S')" :size="isMobile ? 'small' : 'large'"
+              :disabled="animationRunning && !animationError ? 'disabled' : null" density="default">
               <v-icon>mdi-page-first</v-icon> Go to start
             </v-btn>
 
-            <v-btn
-              @mousedown.stop="panToNode('P')"
-              :size="isMobile ? 'x-small' : 'large'"
-              :disabled="animationRunning && !animationError ? 'disabled' : null"
-              density="comfortable"
-            >
+            <v-btn @mousedown.stop="panToNode('P')" :size="isMobile ? 'small' : 'large'"
+              :disabled="animationRunning && !animationError ? 'disabled' : null" density="default">
               <v-icon>mdi-page-last</v-icon> Go to end
-            </v-btn> -->
+            </v-btn>
 
             <v-btn v-tooltip:end="'Start/Stop the animation'"
               :class="animationError ? 'error' : (animationRunning ? 'warning' : 'success')"
@@ -185,7 +196,8 @@ export default {
       pathIndex: 0,
       isMobile: true,
       isPathSet: false,
-      data: null
+      data: null,
+      unsavedChanges: true
     };
   },
   computed: {
@@ -212,7 +224,10 @@ export default {
     window.addEventListener('touchend', this.stopInteraction);
     window.addEventListener('touchcancel', this.stopInteraction);
 
-    this.panToNode('P');
+    window.addEventListener('beforeunload', this.preventUnsavedChanges);
+
+    this.unsavedChanges = true;
+    this.panToNode('S');
   },
   beforeDestroy() {
     window.removeEventListener('resize', this.detectMobile);
@@ -222,6 +237,8 @@ export default {
     window.removeEventListener('touchmove', this.onTouchMove);
     window.removeEventListener('touchend', this.stopInteraction);
     window.removeEventListener('touchcancel', this.stopInteraction);
+
+    window.removeEventListener('beforeunload', this.preventUnsavedChanges);
   },
   methods: {
     findNode(id) {
@@ -247,7 +264,7 @@ export default {
           this.selectedNodeIdInEditMode = null;
           return;
         }
-
+        console.log(this.getGraphRelationsAndPositions());
         this.selectedNodeIdInEditMode = id;
         const newId = prompt('Enter new ID', id);
         if (newId && newId !== id) {
@@ -605,17 +622,17 @@ export default {
         } else {
           console.error('Path data is not valid:', data);
           setTimeout(() => {
-            alert('No path found.');
             this.animationError = true;
             this.resetNodes();
+            alert('No path found.');
           }, 200);
         }
       } catch (error) {
         console.error('Error fetching path:', error);
         setTimeout(() => {
-          alert('No path found.');
           this.animationError = true;
           this.resetNodes();
+          alert('No path found.');
         }, 200);
       }
     },
@@ -639,7 +656,7 @@ export default {
     async panToNode(nodeId) {
       const node = this.findNode(nodeId);
       if (node) {
-        if (nodeId === 'S') {
+        if (nodeId === 'S' && this.animationRunning === true) {
           this.toucanX = node.x + this.panX;
           this.toucanY = node.y + this.panY;
         } else {
@@ -713,37 +730,94 @@ export default {
       event.preventDefault();
       this.handleMouseOver(event.touches[0]);
     },
+
+    triggerFileInput() {
+      this.$refs.fileInput.click();
+    },
+
+    saveGraph() {
+      const data = {
+        nodes: this.nodes,
+        edges: this.edges
+      };
+      const json = JSON.stringify(data, null, 2);
+      const blob = new Blob([json], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "graph.json";
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      this.unsavedChanges = false;
+    },
+
+    loadGraph(event) {
+      const file = event.target.files[0];
+      if (file) {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          const json = e.target.result;
+          try {
+            const data = JSON.parse(json);
+            this.nodes = data.nodes || [];
+            this.edges = data.edges || [];
+          } catch (error) {
+            alert("Failed to load graph: Invalid JSON format.");
+          }
+        };
+        reader.readAsText(file);
+      }
+    },
+
+    shareGraph() {
+      alert("Feature not implemented.");
+    },
+
+    preventUnsavedChanges(e) {
+      if (this.unsavedChanges) {
+        e.preventDefault();
+        e.returnValue = '';
+
+        return 'You have unsaved changes. Are you sure you want to leave?';
+      }
+    }
   }
 };
 </script>
 
 <style scoped>
 .fill-height {
+  position: relative;
   height: 100%;
+  width: 100%;
   margin: 0;
   padding: 0;
-  overflow: hidden;
+  overflow: visible;
 }
 
 .svg-container {
   position: relative;
   width: 100%;
   height: 100%;
-  overflow: hidden;
+  overscroll-behavior: contain;
+  overflow: visible;
+}
+
+.graph-svg {
+  position: relative;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  right: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 1;
 }
 
 .hand-cursor {
   cursor: move;
-}
-
-.graph-svg {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  z-index: 1;
-  /* Ensure SVG content is below buttons */
 }
 
 .button-group {
@@ -758,6 +832,11 @@ export default {
 .button-group.top {
   top: 16px;
   right: 16px;
+}
+
+.button-group.left {
+  left: 16px;
+  top: 16px;
 }
 
 .button-group.bottom {

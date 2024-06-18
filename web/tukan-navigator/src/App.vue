@@ -1,9 +1,8 @@
 <template>
   <v-app>
-    <AppBar title="Tukan Navigator" />
     <v-main>
-
-      <Graph></Graph>
+      <AppBar title="Tukan Navigator" />
+      <Graph />
     </v-main>
   </v-app>
 </template>
@@ -24,8 +23,10 @@ export default {
 <style>
 html,
 body {
+  margin: 0;
+  overscroll-behavior-y: contain;
+  overscroll-behavior: contain;
   overflow: hidden;
   height: 100%;
-  margin: 0;
 }
 </style>
