@@ -1,5 +1,5 @@
 <template>
-  <input type="file" ref="fileInput" @change="loadGraph" style="display: none;">
+  <input type="file" ref="fileInput" @change="loadGraphFromFile" style="display: none;">
   <v-container fluid class="fill-height">
     <v-row class="fill-height">
       <v-col class="fill-height">
@@ -60,18 +60,18 @@
           </svg>
 
           <div class="button-group left">
-            <v-btn v-tooltip:end="'Save graph to file'" @mousedown.stop="saveGraph();"
+            <v-btn v-tooltip:end="'Save graph to file'" @mousedown.stop="saveGraphToFile();"
               :size="isMobile ? 'small' : 'large'" density="default">
               <v-icon>mdi-content-save</v-icon> Save
             </v-btn>
 
-            <input type="file" id="fileInput" @change="loadGraph($event)" style="display: none;">
-            <v-btn v-tooltip:end="'Load graph from file'" @click="triggerFileInput"
-              :size="isMobile ? 'small' : 'large'" density="default">
+            <input type="file" id="fileInput" @change="loadGraphFromFile($event)" style="display: none;">
+            <v-btn v-tooltip:end="'Load graph from file'" @click="triggerFileInput" :size="isMobile ? 'small' : 'large'"
+              density="default">
               <v-icon>mdi-upload</v-icon> Load
             </v-btn>
 
-            <v-btn v-tooltip:end="'Share graph as URL'" @mousedown.stop="shareGraph()"
+            <v-btn v-tooltip:end="'Share graph as URL'" @mousedown.stop="saveGraphToDB()"
               :size="isMobile ? 'small' : 'large'" density="default">
               <v-icon>mdi-share</v-icon> Share
             </v-btn>
@@ -119,19 +119,19 @@
           </div>
 
           <div class="button-group bottom">
-            <v-btn @mousedown.stop="panToNode('S')" :size="isMobile ? 'small' : 'large'"
+            <v-btn v-tooltip:end="'Go to start'" @mousedown.stop="panToNode('S')" :size="isMobile ? 'small' : 'large'"
               :disabled="animationRunning && !animationError ? 'disabled' : null" density="default">
               <v-icon>mdi-page-first</v-icon> Go to start
             </v-btn>
 
-            <v-btn @mousedown.stop="panToNode('P')" :size="isMobile ? 'small' : 'large'"
+            <v-btn v-tooltip:end="'Go to end'" @mousedown.stop="panToNode('P')" :size="isMobile ? 'small' : 'large'"
               :disabled="animationRunning && !animationError ? 'disabled' : null" density="default">
               <v-icon>mdi-page-last</v-icon> Go to end
             </v-btn>
 
             <v-btn v-tooltip:end="'Start/Stop the animation'"
-              :class="animationError ? 'error' : (animationRunning ? 'warning' : 'success')"
-              @mousedown.stop="toggleAnimation" :size="isMobile ? 'small' : 'large'" density="default"
+              :class="animationError ? 'error' : (animationRunning ? 'warning' : 'success')" @click="toggleAnimation"
+              :size="isMobile ? 'small' : 'large'" density="default"
               :color="animationRunning ? 'error' : (animationError ? 'warning' : 'success')">
               <v-icon>{{ animationRunning ? 'mdi-stop' : (animationError ? 'mdi-replay' : 'mdi-play') }}</v-icon>
               {{ animationRunning ? 'Stop' : (animationError ? 'Restart' : 'Start') }}
@@ -228,6 +228,8 @@ export default {
 
     this.unsavedChanges = true;
     this.panToNode('S');
+
+    this.loadGraphFromDB();
   },
   beforeDestroy() {
     window.removeEventListener('resize', this.detectMobile);
@@ -589,7 +591,7 @@ export default {
 
     async startAnimation() {
       try {
-        const response = await fetch('http://localhost:8000/api/v1/graphs/shortest-path', {
+        const response = await fetch('http://localhost:8000/api/v1/graph/shortest-path', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json'
@@ -606,7 +608,8 @@ export default {
 
         const data = await response.json();
         if (data.path) {
-          this.animationRunning = true;
+          await this.panToNode('S');
+          //this.animationRunning = true;
 
           this.animatedPath = [];
           this.animatedPath.push(this.findNode('S'));
@@ -616,9 +619,11 @@ export default {
 
           this.data = data;
 
-          this.animationRunning = true;
-          this.animationError = false;
-          this.animateToucan();
+          setTimeout(() => {
+            this.animationRunning = true;
+            this.animationError = false;
+            this.animateToucan();
+          }, 1000);
         } else {
           console.error('Path data is not valid:', data);
           setTimeout(() => {
@@ -735,7 +740,7 @@ export default {
       this.$refs.fileInput.click();
     },
 
-    saveGraph() {
+    saveGraphToFile() {
       const data = {
         nodes: this.nodes,
         edges: this.edges
@@ -753,7 +758,7 @@ export default {
       this.unsavedChanges = false;
     },
 
-    loadGraph(event) {
+    loadGraphFromFile(event) {
       const file = event.target.files[0];
       if (file) {
         const reader = new FileReader();
@@ -771,8 +776,81 @@ export default {
       }
     },
 
-    shareGraph() {
-      alert("Feature not implemented.");
+    async loadGraphFromDB() {
+      try {
+        const urlParams = new URLSearchParams(window.location.search);
+        const hash = urlParams.get('graph');
+
+        if (!hash) {
+          throw new Error('Graph hash parameter (?graph=) is missing.');
+        }
+
+        console.log('Fetching graph with hash:', hash);
+
+        const response = await fetch(`http://localhost:8000/api/v1/graph/${hash}`, {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json'
+          }
+        });
+
+        if (!response.ok) {
+          throw new Error(`HTTP error! Status: ${response.status}`);
+        }
+
+        const graph = await response.json();
+        console.log('Fetched graph:', graph);
+
+        try {
+          this.nodes = graph.nodes || [];
+          this.edges = graph.edges || [];
+        } catch (error) {
+          alert("Failed to load graph: Invalid JSON format.");
+        }
+      } catch (error) {
+        console.error('Error fetching graph:', error);
+      }
+    },
+
+    async saveGraphToDB() {
+      try {
+        const data = {
+          nodes: this.nodes,
+          edges: this.edges
+        };
+        const json = JSON.stringify(data, null, 2);
+
+        const response = await fetch('http://localhost:8000/api/v1/graph/store', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: json
+        });
+
+        console.log('JSON', json, data);
+        console.log('Response:', response);
+
+        if (!response.ok) {
+          const errorResponse = await response.json();
+          alert(`Failed to save graph: ${errorResponse.error.message}`);
+          throw new Error(`Failed to save graph: ${errorResponse.error.message}`);
+        }
+
+        const responseData = await response.json();
+        if (responseData.hash) {
+          alert(`Graph saved successfully with hash: ${responseData.hash}`);
+          console.log(`Graph saved successfully with hash: ${responseData.hash}`);
+          return responseData.hash;
+        } else {
+          alert('Failed to save graph: Missing hash in response');
+          throw new Error('Failed to save graph: Missing hash in response');
+        }
+      } catch (error) {
+        console.error('Error saving graph:', error);
+        alert(`Error saving graph: ${error.message}`);
+        throw error;
+      }
     },
 
     preventUnsavedChanges(e) {
@@ -852,8 +930,6 @@ export default {
 
 .button-group.mobile .v-btn {
   min-width: auto;
-  /* Adjust as needed */
   padding: 6px 12px;
-  /* Adjust padding */
 }
 </style>

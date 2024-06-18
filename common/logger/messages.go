@@ -3,9 +3,7 @@ package logger
 type Resource string
 
 const (
-	ResourceDevice  Resource = "DEVICE"
-	ResourcePlugin  Resource = "PLUGIN"
-	ResourceUser    Resource = "USER"
+	ResourceGraph  Resource = "GRAPH"
 	ResourceConfig  Resource = "CONFIG"
 	ResourceEnv     Resource = "ENV"
 )
@@ -49,6 +47,7 @@ var (
 var (
 	ErrReadingResource    = NewMessageWrapper("ErrReadingResource", "error reading %s (%s)", FatalLevel)
 	ErrFormattingResource = NewMessageWrapper("ErrFormattingResource", "error formatting %s (%s)", FatalLevel)
+	ErrHashingResource    = NewMessageWrapper("ErrHashingResource", "error hashing %s (%s)", FatalLevel)
 )
 
 

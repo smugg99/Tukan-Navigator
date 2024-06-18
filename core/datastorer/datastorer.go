@@ -36,7 +36,7 @@ func Initialize() *logger.MessageWrapper {
 
 	DB = db
 
-	if err := DB.AutoMigrate(&User{}, &Device{}); err != nil {
+	if err := DB.AutoMigrate(&Graph{}); err != nil {
 		return logger.ErrInitializing.Format(err.Error())
 	}
 
