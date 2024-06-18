@@ -2,7 +2,7 @@
   <v-app>
     <AppBar title="Tukan Navigator" />
     <v-main>
-      
+
       <Graph></Graph>
     </v-main>
   </v-app>
@@ -22,7 +22,8 @@ export default {
 </script>
 
 <style>
-html, body {
+html,
+body {
   overflow: hidden;
   height: 100%;
   margin: 0;

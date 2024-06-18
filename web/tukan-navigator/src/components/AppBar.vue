@@ -7,12 +7,19 @@
 
     <template v-slot:append>
     </template>
-
+    <v-btn class="mr-2" :icon="currentTheme === 'light' ? 'mdi-weather-sunny' : 'mdi-weather-night'"
+      @click="toggleTheme">
+    </v-btn>
+    <v-btn class="mr-2" icon href="https://github.com/smugg99/Tukan-Navigator">
+      <v-icon>mdi-github</v-icon>
+    </v-btn>
     <slot></slot>
   </v-app-bar>
 </template>
 
 <script>
+import { useTheme } from 'vuetify'
+
 export default {
   name: 'AppBar',
   props: {
@@ -20,6 +27,19 @@ export default {
       type: String,
       required: true,
     },
+  },
+  setup() {
+    const theme = useTheme()
+    const currentTheme = theme.global.name
+
+    const toggleTheme = () => {
+      theme.global.name.value = currentTheme.value === 'light' ? 'dark' : 'light'
+    }
+
+    return {
+      currentTheme,
+      toggleTheme,
+    }
   },
 };
 </script>

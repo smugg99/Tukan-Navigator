@@ -1,6 +1,6 @@
 ## Installation
 
-Tested on Debian 12, you need to have GO (version 1.22.3) installed and ready to use.
+Tested on Debian 12, you need to have GO (version 1.22.3) with all the dependencies from go.mod file installed and ready to use.
 
 To install the project, follow these steps:
 

@@ -5,108 +5,55 @@
         <!-- SVG container with relative positioning -->
         <div class="svg-container">
           <!-- SVG graph with absolute positioning -->
-          <svg
-            ref="svg"
-            class="graph-svg"
-            :class="{ 'hand-cursor': mode === 'pan' }"
-            @mousedown="startInteraction"
-            @touchstart="startInteraction"
-            @mouseup="stopInteraction"
-            @mouseleave="stopInteraction"
-            @touchend="stopInteraction"
-            @mousemove="handleMouseOver"
-            @touchmove="handleTouchMove"
-            @click="handleSvgClick"
-          >
+          <svg ref="svg" class="graph-svg" :class="{ 'hand-cursor': mode === 'pan' }" @mousedown="startInteraction"
+            @touchstart="startInteraction" @mouseup="stopInteraction" @mouseleave="stopInteraction"
+            @touchend="stopInteraction" @mousemove="handleMouseOver" @touchmove="handleTouchMove"
+            @click="handleSvgClick">
             <g :transform="`translate(${panX}, ${panY})`">
               <!-- Define grid pattern -->
               <defs>
-                <pattern
-                  id="gridPattern"
-                  width="40"
-                  height="40"
-                  patternUnits="userSpaceOnUse"
-                >
-                  <rect width="40" height="40" fill="#f0f0f0" />
-                  <path
-                    d="M 40 0 L 0 0 0 40"
-                    fill="none"
-                    stroke="#cccccc"
-                    stroke-width="1"
-                  />
+                <pattern id="gridPattern" width="40" height="40" patternUnits="userSpaceOnUse">
+                  <rect width="40" height="40" :fill="currentTheme === 'dark' ? '#2c2c2c' : '#f0f0f0'" />
+                  <path d="M 40 0 L 0 0 0 40" fill="none" :stroke="currentTheme === 'dark' ? '#888888' : '#cccccc'"
+                    stroke-width="1" />
                 </pattern>
               </defs>
             </g>
-              
+
             <g :transform="`translate(${panX}, ${panY})`">
               <!-- Apply grid pattern as background -->
-              <rect
-                height="100000"
-                width="100000"
-                x="-50000"
-                y="-50000"
-                fill="url(#gridPattern)"
-              />
+              <rect height="100000" width="100000" x="-50000" y="-50000" fill="url(#gridPattern)" />
             </g>
-            
+
             <!-- Existing SVG content -->
             <g :transform="`translate(${panX}, ${panY})`">
               <!-- Render existing edges -->
-                <Edge
-                v-for="edge in validEdges"
-                :key="'edge-' + edge.id"
-                :from="findNode(edge.from)"
-                :to="findNode(edge.to)"
-                :edge="edge"
+              <Edge v-for="edge in validEdges" :key="'edge-' + edge.id" :from="findNode(edge.from)"
+                :to="findNode(edge.to)" :edge="edge"
                 :highlighted="(selectedEdgeId === edge.id || highlightedEdgeId === edge.id) && (mode === 'edit' || mode === 'remove')"
-                @select="handleEdgeSelect(edge)"
-                />
+                @select="handleEdgeSelect(edge)" />
               />
               <!-- Render existing nodes -->
-                <Node
-                v-for="node in nodes"
-                :key="'node-' + node.id"
-                :id="node.id"
-                :x="node.x"
-                :y="node.y"
+              <Node v-for="node in nodes" :key="'node-' + node.id" :id="node.id" :x="node.x" :y="node.y"
                 :selected="node.id === selectedNodeId || node.id === edgeStartNode"
                 :highlighted="node.id === hoveredNodeId || node.id === selectedNodeIdInEditMode"
-                :traversed="node.traversed"
-                :mode="mode"
-                @select="selectNode"
-                @mousedown.stop="startNodeDrag($event, node.id)"
-                @touchstart.stop="startNodeDrag($event, node.id)"
-                />
+                :traversed="node.traversed" :mode="mode" @select="selectNode"
+                @mousedown.stop="startNodeDrag($event, node.id)" @touchstart.stop="startNodeDrag($event, node.id)" />
               />
             </g>
 
             <!-- Ghost element for new edge -->
-            <line
-              v-if="mode === 'addEdge' && edgeStartNode && hoveredNodeId"
-              :x1="findNode(edgeStartNode).x + panX"
-              :y1="findNode(edgeStartNode).y + panY"
-              :x2="findNode(hoveredNodeId).x + panX"
-              :y2="findNode(hoveredNodeId).y + panY"
-              stroke="black"
-              opacity="0.5"
-              z-index="1"
-              stroke-dasharray="5,5"
-              pointer-events="none"
-            />
+            <line v-if="mode === 'addEdge' && edgeStartNode && hoveredNodeId" :x1="findNode(edgeStartNode).x + panX"
+              :y1="findNode(edgeStartNode).y + panY" :x2="findNode(hoveredNodeId).x + panX"
+              :y2="findNode(hoveredNodeId).y + panY" :stroke="currentTheme === 'dark' ? '#ffffff' : '#000000'"
+              :opacity="currentTheme === 'dark' ? '0.5' : '0.3'" z-index="1" stroke-dasharray="5,5"
+              pointer-events="none" />
 
             <!-- Ghost element for new node -->
-            <circle
-              v-if="mode === 'add' && addNodeHovered"
-              :cx="addNodeHovered.x + panX"
-              :cy="addNodeHovered.y + panY"
-              r="20"
-              fill="transparent"
-              stroke="black"
-              opacity="0.5"
-              z-index="1"
-              stroke-dasharray="5,5"
-              pointer-events="none"
-            />
+            <circle v-if="mode === 'add' && addNodeHovered" :cx="addNodeHovered.x + panX" :cy="addNodeHovered.y + panY"
+              r="20" fill="transparent" :stroke="currentTheme === 'dark' ? '#ffffff' : '#000000'"
+              :opacity="currentTheme === 'dark' ? '0.5' : '0.3'" z-index="1" stroke-dasharray="5,5"
+              pointer-events="none" />
 
             <Toucan v-if="animationRunning" :x="toucanX" :y="toucanY" />
           </svg>
@@ -114,67 +61,43 @@
           <!-- Button group outside SVG for z-index stacking -->
           <div class="button-group top">
             <!-- Buttons with icons and gaps -->
-            <v-btn
-              :class="{ 'v-btn--active': mode === 'pan' }"
-              @mousedown.stop="setMode('pan')"
-              :size="isMobile ? 'x-small' : 'large'"
-              :disabled="animationRunning && !animationError ? 'disabled' : null"
-              density="comfortable"
-            >
+            <v-btn :class="{ 'v-btn--active': mode === 'pan' }" @mousedown.stop="setMode('pan')"
+              :size="isMobile ? 'x-small' : 'large'" :disabled="animationRunning && !animationError ? 'disabled' : null"
+              density="comfortable">
               <v-icon>mdi-cursor-move</v-icon> Move
             </v-btn>
 
-            <v-btn
-              :class="{ 'v-btn--active': mode === 'drag' }"
-              @mousedown.stop="setMode('drag')"
-              :size="isMobile ? 'x-small' : 'large'"
-              :disabled="animationRunning && !animationError ? 'disabled' : null"
-              density="comfortable"
-            >
+            <v-btn :class="{ 'v-btn--active': mode === 'drag' }" @mousedown.stop="setMode('drag')"
+              :size="isMobile ? 'x-small' : 'large'" :disabled="animationRunning && !animationError ? 'disabled' : null"
+              density="comfortable">
               <v-icon>mdi-drag-variant</v-icon> Drag
             </v-btn>
 
-            <v-btn
-              :class="{ 'v-btn--active': mode === 'add' }"
-              @mousedown.stop="setMode('add')"
-              :size="isMobile ? 'x-small' : 'large'"
-              :disabled="animationRunning && !animationError ? 'disabled' : null"
-              density="comfortable"
-            >
+            <v-btn :class="{ 'v-btn--active': mode === 'add' }" @mousedown.stop="setMode('add')"
+              :size="isMobile ? 'x-small' : 'large'" :disabled="animationRunning && !animationError ? 'disabled' : null"
+              density="comfortable">
               <v-icon>mdi-vector-circle</v-icon> Add Node
             </v-btn>
 
-            <v-btn
-              :class="{ 'v-btn--active': mode === 'addEdge' }"
-              @mousedown.stop="setMode('addEdge')"
-              :size="isMobile ? 'x-small' : 'large'"
-              :disabled="animationRunning && !animationError ? 'disabled' : null"
-              density="comfortable"
-            >
+            <v-btn :class="{ 'v-btn--active': mode === 'addEdge' }" @mousedown.stop="setMode('addEdge')"
+              :size="isMobile ? 'x-small' : 'large'" :disabled="animationRunning && !animationError ? 'disabled' : null"
+              density="comfortable">
               <v-icon>mdi-vector-line</v-icon> Add Edge
             </v-btn>
 
-            <v-btn
-              :class="{ 'v-btn--active': mode === 'edit' }"
-              @mousedown.stop="setMode('edit')"
-              :size="isMobile ? 'x-small' : 'large'"
-              :disabled="animationRunning && !animationError ? 'disabled' : null"
-              density="comfortable"
-            >
+            <v-btn :class="{ 'v-btn--active': mode === 'edit' }" @mousedown.stop="setMode('edit')"
+              :size="isMobile ? 'x-small' : 'large'" :disabled="animationRunning && !animationError ? 'disabled' : null"
+              density="comfortable">
               <v-icon>mdi-pencil</v-icon> Edit
             </v-btn>
 
-            <v-btn
-              :class="{ 'v-btn--active': mode === 'remove' }"
-              @mousedown.stop="setMode('remove')"
-              :size="isMobile ? 'x-small' : 'large'"
-              :disabled="animationRunning && !animationError ? 'disabled' : null"
-              density="comfortable"
-            >
+            <v-btn :class="{ 'v-btn--active': mode === 'remove' }" @mousedown.stop="setMode('remove')"
+              :size="isMobile ? 'x-small' : 'large'" :disabled="animationRunning && !animationError ? 'disabled' : null"
+              density="comfortable">
               <v-icon>mdi-delete</v-icon> Remove
             </v-btn>
           </div>
-          
+
           <div class="button-group bottom">
             <!-- <v-btn
               @mousedown.stop="panToNode('S')"
@@ -194,13 +117,9 @@
               <v-icon>mdi-page-last</v-icon> Go to end
             </v-btn> -->
 
-            <v-btn
-              :class="animationError ? 'error' : (animationRunning ? 'warning' : 'success')"
-              @mousedown.stop="toggleAnimation"
-              :size="isMobile ? 'x-small' : 'large'"
-              density="comfortable"
-              :color="animationRunning ? 'error' : (animationError ? 'warning' : 'success')"
-            >
+            <v-btn :class="animationError ? 'error' : (animationRunning ? 'warning' : 'success')"
+              @mousedown.stop="toggleAnimation" :size="isMobile ? 'x-small' : 'large'" density="comfortable"
+              :color="animationRunning ? 'error' : (animationError ? 'warning' : 'success')">
               <v-icon>{{ animationRunning ? 'mdi-stop' : (animationError ? 'mdi-replay' : 'mdi-play') }}</v-icon>
               {{ animationRunning ? 'Stop' : (animationError ? 'Restart' : 'Start') }}
             </v-btn>
@@ -212,6 +131,7 @@
 </template>
 
 <script>
+import { useTheme } from 'vuetify';
 import { throttle } from 'lodash';
 import Node from './Node.vue';
 import Edge from './Edge.vue';
@@ -223,11 +143,17 @@ export default {
     Edge,
     Toucan
   },
+  setup() {
+    const theme = useTheme()
+    const currentTheme = theme.global.name
+
+    return { theme, currentTheme };
+  },
   data() {
     return {
       nodes: [
-        { id: 'S', x: 50, y: 50 },
-        { id: 'P', x: 250, y: 50 },
+        { id: 'S', x: 100, y: 0 },
+        { id: 'P', x: 250, y: 0 },
       ],
       edges: [],
       selectedNodeId: null,
@@ -274,7 +200,7 @@ export default {
   mounted() {
     this.throttledMouseMove = throttle(this.onMouseMove, 16);
     this.detectMobile();
-  
+
     window.addEventListener('resize', this.detectMobile);
     window.addEventListener('mousemove', this.throttledMouseMove);
     window.addEventListener('mouseup', this.stopInteraction);
@@ -283,6 +209,8 @@ export default {
     window.addEventListener('touchmove', this.onTouchMove, { passive: false });
     window.addEventListener('touchend', this.stopInteraction);
     window.addEventListener('touchcancel', this.stopInteraction);
+
+    this.panToNode('P');
   },
   beforeDestroy() {
     window.removeEventListener('resize', this.detectMobile);
@@ -334,7 +262,7 @@ export default {
           this.selectedNodeId = id;
         } else {
           if (this.edgeStartNode !== id) {
-            const existingEdge = this.edges.find(edge => 
+            const existingEdge = this.edges.find(edge =>
               (edge.from === this.edgeStartNode && edge.to === id) ||
               (edge.from === id && edge.to === this.edgeStartNode)
             );
@@ -357,18 +285,18 @@ export default {
                 }
               }
             } else {
-                alert('An edge already exists between these nodes.');
-                this.edgeStartNode = null;
-                this.selectedNodeId = null;
-                this.hoveredNodeId = null;
-                this.selectedNodeIdInEditMode = null;
-            }
-          } else {
-              alert('Cannot connect a node to itself. Select a different node.');
+              alert('An edge already exists between these nodes.');
               this.edgeStartNode = null;
               this.selectedNodeId = null;
               this.hoveredNodeId = null;
               this.selectedNodeIdInEditMode = null;
+            }
+          } else {
+            alert('Cannot connect a node to itself. Select a different node.');
+            this.edgeStartNode = null;
+            this.selectedNodeId = null;
+            this.hoveredNodeId = null;
+            this.selectedNodeIdInEditMode = null;
           }
         }
       } else if (this.mode === 'pan' || this.mode === 'drag') {
@@ -461,7 +389,7 @@ export default {
           node.x = touch.clientX - this.offsetX - this.panX;
           node.y = touch.clientY - this.offsetY - this.panY;
         }
-      }else if (this.isPanning) {
+      } else if (this.isPanning) {
         let clientX, clientY;
         if (event.type === 'touchmove') {
           clientX = event.touches[0].clientX;
@@ -531,7 +459,7 @@ export default {
           }
         }
       } else {
-        if(this.mode !== 'addEdge') {
+        if (this.mode !== 'addEdge') {
           this.selectedNodeId = null;
           this.edgeStartNode = null;
         }
@@ -632,7 +560,7 @@ export default {
 
     async toggleAnimation() {
       this.animationError = false;
-      
+
       if (!this.animationRunning) {
         await this.startAnimation();
       } else {
@@ -668,7 +596,7 @@ export default {
           this.pathIndex = 0;
 
           this.data = data;
-          
+
           this.animationRunning = true;
           this.animationError = false;
           this.animateToucan();
@@ -692,7 +620,7 @@ export default {
       if (this.animationRunning && this.pathIndex < this.animatedPath.length) {
         const node = this.animatedPath[this.pathIndex];
         await this.panToNode(node.id);
-        
+
         node.traversed = true;
 
         this.pathIndex++;
@@ -728,7 +656,7 @@ export default {
             if (!startTime) {
               startTime = currentTime;
             }
-            
+
             const elapsedTime = currentTime - startTime;
             const progress = Math.min(elapsedTime / duration, 1);
 
@@ -810,7 +738,8 @@ export default {
   left: 0;
   width: 100%;
   height: 100%;
-  z-index: 1; /* Ensure SVG content is below buttons */
+  z-index: 1;
+  /* Ensure SVG content is below buttons */
 }
 
 .button-group {
@@ -821,21 +750,27 @@ export default {
   gap: 8px;
   padding: 8px;
 }
+
 .button-group.top {
   top: 16px;
   left: 16px;
 }
+
 .button-group.bottom {
   bottom: 16px;
   left: 16px;
 }
+
 .button-group.mobile {
   flex-direction: row;
   gap: 4px;
   padding: 4px;
 }
+
 .button-group.mobile .v-btn {
-  min-width: auto; /* Adjust as needed */
-  padding: 6px 12px; /* Adjust padding */
+  min-width: auto;
+  /* Adjust as needed */
+  padding: 6px 12px;
+  /* Adjust padding */
 }
 </style>

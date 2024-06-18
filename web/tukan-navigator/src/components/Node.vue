@@ -1,22 +1,11 @@
 <template>
-  <g @mousedown="select" :class="{'selectable': isSelectable, 'highlighted': highlighted}">
-    <circle
-      :cx="x"
-      :cy="y"
-      r="20"
-      :class="{ 
-        'node-selected': selected, 
-        'node-highlighted': highlighted,
-        'node-traversed': traversed
-      }"
-    />
-    <text
-      :x="x"
-      :y="y"
-      text-anchor="middle"
-      fill="white"
-      dy=".3em"
-    >{{ id }}</text>
+  <g @mousedown="select" :class="{ 'selectable': isSelectable, 'highlighted': highlighted }">
+    <circle :cx="x" :cy="y" r="20" :class="{
+      'node-selected': selected,
+      'node-highlighted': highlighted,
+      'node-traversed': traversed
+    }" />
+    <text :x="x" :y="y" text-anchor="middle" fill="white" dy=".3em">{{ id }}</text>
   </g>
 </template>
 
@@ -38,7 +27,7 @@ export default {
   },
   methods: {
     select() {
-      if(this.isSelectable) {
+      if (this.isSelectable) {
         this.$emit('select', this.id);
       }
     }
