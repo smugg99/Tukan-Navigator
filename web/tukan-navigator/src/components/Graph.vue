@@ -61,39 +61,40 @@
           <!-- Button group outside SVG for z-index stacking -->
           <div class="button-group top">
             <!-- Buttons with icons and gaps -->
-            <v-btn :class="{ 'v-btn--active': mode === 'pan' }" @mousedown.stop="setMode('pan')"
-              :size="isMobile ? 'x-small' : 'large'" :disabled="animationRunning && !animationError ? 'disabled' : null"
-              density="comfortable">
+            <v-btn v-tooltip:end="'Pan around the graph'" :class="{ 'v-btn--active': mode === 'pan' }"
+              @mousedown.stop="setMode('pan')" :size="isMobile ? 'small' : 'large'"
+              :disabled="animationRunning && !animationError ? 'disabled' : null" density="default">
               <v-icon>mdi-cursor-move</v-icon> Move
             </v-btn>
 
-            <v-btn :class="{ 'v-btn--active': mode === 'drag' }" @mousedown.stop="setMode('drag')"
-              :size="isMobile ? 'x-small' : 'large'" :disabled="animationRunning && !animationError ? 'disabled' : null"
-              density="comfortable">
+            <v-btn v-tooltip:end="'This tool let\'s you move nodes around'"
+              :class="{ 'v-btn--active': mode === 'drag' }" @mousedown.stop="setMode('drag')"
+              :size="isMobile ? 'small' : 'large'" :disabled="animationRunning && !animationError ? 'disabled' : null"
+              density="default">
               <v-icon>mdi-drag-variant</v-icon> Drag
             </v-btn>
 
-            <v-btn :class="{ 'v-btn--active': mode === 'add' }" @mousedown.stop="setMode('add')"
-              :size="isMobile ? 'x-small' : 'large'" :disabled="animationRunning && !animationError ? 'disabled' : null"
-              density="comfortable">
+            <v-btn v-tooltip:end="'Add a new node'" :class="{ 'v-btn--active': mode === 'add' }"
+              @mousedown.stop="setMode('add')" :size="isMobile ? 'small' : 'large'"
+              :disabled="animationRunning && !animationError ? 'disabled' : null" density="default">
               <v-icon>mdi-vector-circle</v-icon> Add Node
             </v-btn>
 
-            <v-btn :class="{ 'v-btn--active': mode === 'addEdge' }" @mousedown.stop="setMode('addEdge')"
-              :size="isMobile ? 'x-small' : 'large'" :disabled="animationRunning && !animationError ? 'disabled' : null"
-              density="comfortable">
+            <v-btn v-tooltip:end="'Add a new edge'" :class="{ 'v-btn--active': mode === 'addEdge' }"
+              @mousedown.stop="setMode('addEdge')" :size="isMobile ? 'small' : 'large'"
+              :disabled="animationRunning && !animationError ? 'disabled' : null" density="default">
               <v-icon>mdi-vector-line</v-icon> Add Edge
             </v-btn>
 
-            <v-btn :class="{ 'v-btn--active': mode === 'edit' }" @mousedown.stop="setMode('edit')"
-              :size="isMobile ? 'x-small' : 'large'" :disabled="animationRunning && !animationError ? 'disabled' : null"
-              density="comfortable">
+            <v-btn v-tooltip:end="'Edit the graph'" :class="{ 'v-btn--active': mode === 'edit' }"
+              @mousedown.stop="setMode('edit')" :size="isMobile ? 'small' : 'large'"
+              :disabled="animationRunning && !animationError ? 'disabled' : null" density="default">
               <v-icon>mdi-pencil</v-icon> Edit
             </v-btn>
 
-            <v-btn :class="{ 'v-btn--active': mode === 'remove' }" @mousedown.stop="setMode('remove')"
-              :size="isMobile ? 'x-small' : 'large'" :disabled="animationRunning && !animationError ? 'disabled' : null"
-              density="comfortable">
+            <v-btn v-tooltip:end="'Remove elements from the graph'" :class="{ 'v-btn--active': mode === 'remove' }"
+              @mousedown.stop="setMode('remove')" :size="isMobile ? 'small' : 'large'"
+              :disabled="animationRunning && !animationError ? 'disabled' : null" density="default">
               <v-icon>mdi-delete</v-icon> Remove
             </v-btn>
           </div>
@@ -117,8 +118,9 @@
               <v-icon>mdi-page-last</v-icon> Go to end
             </v-btn> -->
 
-            <v-btn :class="animationError ? 'error' : (animationRunning ? 'warning' : 'success')"
-              @mousedown.stop="toggleAnimation" :size="isMobile ? 'x-small' : 'large'" density="comfortable"
+            <v-btn v-tooltip:end="'Start/Stop the animation'"
+              :class="animationError ? 'error' : (animationRunning ? 'warning' : 'success')"
+              @mousedown.stop="toggleAnimation" :size="isMobile ? 'small' : 'large'" density="default"
               :color="animationRunning ? 'error' : (animationError ? 'warning' : 'success')">
               <v-icon>{{ animationRunning ? 'mdi-stop' : (animationError ? 'mdi-replay' : 'mdi-play') }}</v-icon>
               {{ animationRunning ? 'Stop' : (animationError ? 'Restart' : 'Start') }}
@@ -603,6 +605,7 @@ export default {
         } else {
           console.error('Path data is not valid:', data);
           setTimeout(() => {
+            alert('No path found.');
             this.animationError = true;
             this.resetNodes();
           }, 200);
@@ -610,6 +613,7 @@ export default {
       } catch (error) {
         console.error('Error fetching path:', error);
         setTimeout(() => {
+          alert('No path found.');
           this.animationError = true;
           this.resetNodes();
         }, 200);
@@ -753,7 +757,7 @@ export default {
 
 .button-group.top {
   top: 16px;
-  left: 16px;
+  right: 16px;
 }
 
 .button-group.bottom {
