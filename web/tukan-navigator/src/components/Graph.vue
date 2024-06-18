@@ -56,7 +56,7 @@
               :opacity="currentTheme === 'dark' ? '0.5' : '0.3'" z-index="1" stroke-dasharray="5,5"
               pointer-events="none" />
 
-            <Toucan v-if="animationRunning" :x="toucanX" :y="toucanY" />
+            <Toucan v-if="toucanVisible" :x="toucanX" :y="toucanY" />
           </svg>
 
           <div class="button-group left">
@@ -184,6 +184,7 @@ export default {
       panStartY: 0,
       toucanX: 0,
       toucanY: 0,
+      toucanVisible: false,
       width: 800,
       height: 600,
       mode: 'pan',
@@ -581,11 +582,13 @@ export default {
 
     async toggleAnimation() {
       this.animationError = false;
+      this.toucanVisible = false;
 
       if (!this.animationRunning) {
         await this.startAnimation();
       } else {
         this.animationRunning = false;
+        this.toucanVisible = false;
       }
     },
 
@@ -609,7 +612,7 @@ export default {
         const data = await response.json();
         if (data.path) {
           await this.panToNode('S');
-          //this.animationRunning = true;
+          this.animationRunning = true;
 
           this.animatedPath = [];
           this.animatedPath.push(this.findNode('S'));
@@ -620,10 +623,10 @@ export default {
           this.data = data;
 
           setTimeout(() => {
-            this.animationRunning = true;
+            this.toucanVisible = true;
             this.animationError = false;
             this.animateToucan();
-          }, 1000);
+          }, 500);
         } else {
           console.error('Path data is not valid:', data);
           setTimeout(() => {
@@ -650,10 +653,11 @@ export default {
         node.traversed = true;
 
         this.pathIndex++;
-        setTimeout(this.animateToucan, 1000);
+        setTimeout(this.animateToucan, 500);
       } else {
         this.animationRunning = false;
-        setTimeout(this.resetNodes, 2000);
+        this.toucanVisible = false;
+        setTimeout(this.resetNodes, 1000);
         alert('Distance traveled: ' + this.data.distance);
       }
     },
@@ -675,7 +679,7 @@ export default {
           const targetX = -node.x + centerX - currentPanX;
           const targetY = -node.y + centerY - currentPanY;
 
-          const duration = 750;
+          const duration = 500;
           let startTime = null;
 
           const animate = (currentTime) => {
