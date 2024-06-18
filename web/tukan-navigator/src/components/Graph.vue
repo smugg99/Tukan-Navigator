@@ -789,7 +789,8 @@ export default {
         const hash = urlParams.get('graph');
 
         if (!hash) {
-          throw new Error('Graph hash parameter (?graph=) is missing.');
+          console.log('Graph hash parameter (?graph=) is missing.');
+          return;
         }
 
         console.log('Fetching graph with hash:', hash);
