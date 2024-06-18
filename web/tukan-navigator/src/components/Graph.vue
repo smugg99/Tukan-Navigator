@@ -150,6 +150,9 @@ import Node from './Node.vue';
 import Edge from './Edge.vue';
 import Toucan from './Toucan.vue';
 
+const apiUrl = window.location.origin + window.location.pathname + 'api/v1/';
+const graphUrl = apiUrl + 'graph/';
+
 export default {
   components: {
     Node,
@@ -594,7 +597,7 @@ export default {
 
     async startAnimation() {
       try {
-        const response = await fetch('http://localhost:8000/api/v1/graph/shortest-path', {
+        const response = await fetch(graphUrl + 'shortest-path', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json'
@@ -791,7 +794,7 @@ export default {
 
         console.log('Fetching graph with hash:', hash);
 
-        const response = await fetch(`http://localhost:8000/api/v1/graph/${hash}`, {
+        const response = await fetch(graphUrl + hash, {
           method: 'GET',
           headers: {
             'Content-Type': 'application/json'
@@ -824,7 +827,7 @@ export default {
         };
         const json = JSON.stringify(data, null, 2);
 
-        const response = await fetch('http://localhost:8000/api/v1/graph/store', {
+        const response = await fetch(graphUrl + 'store', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json'
@@ -832,19 +835,25 @@ export default {
           body: json
         });
 
-        console.log('JSON', json, data);
-        console.log('Response:', response);
-
         if (!response.ok) {
           const errorResponse = await response.json();
-          alert(`Failed to save graph: ${errorResponse.error.message}`);
-          throw new Error(`Failed to save graph: ${errorResponse.error.message}`);
+          if (errorResponse.hash) {
+            const graphUrl = `${window.location.origin}?graph=${errorResponse.hash}`;
+            alert(`Graph already exists. Link to the resource: ${graphUrl}`);
+            console.log(`Graph already exists with hash: ${errorResponse.hash}`);
+            return errorResponse.hash;
+          } else {
+            alert(`Failed to save graph: ${errorResponse.error.message}`);
+            throw new Error(`Failed to save graph: ${errorResponse.error.message}`);
+          }
         }
 
         const responseData = await response.json();
         if (responseData.hash) {
-          alert(`Graph saved successfully with hash: ${responseData.hash}`);
+          const graphUrl = `${window.location.origin}?graph=${responseData.hash}`;
+          alert(`Graph saved successfully. Link to the resource: ${graphUrl}`);
           console.log(`Graph saved successfully with hash: ${responseData.hash}`);
+
           return responseData.hash;
         } else {
           alert('Failed to save graph: Missing hash in response');
@@ -853,6 +862,7 @@ export default {
       } catch (error) {
         console.error('Error saving graph:', error);
         alert(`Error saving graph: ${error.message}`);
+
         throw error;
       }
     },

@@ -16,8 +16,6 @@ func SortAndHashGraph(graphProject grapher.GraphProject) (sortedJSON string, has
         return "", "", err
     }
 
-	Logger.Debug("jsonData: ", string(jsonData))
-
     var sortedMap map[string]interface{}
     err = json.Unmarshal(jsonData, &sortedMap)
     if err != nil {

@@ -5,13 +5,18 @@ import (
 
 	"smuggr.xyz/tukan-navigator/common/configurator"
 	"smuggr.xyz/tukan-navigator/common/logger"
-	"smuggr.xyz/tukan-navigator/core/grapher"
 	"smuggr.xyz/tukan-navigator/core/datastorer"
+	"smuggr.xyz/tukan-navigator/core/grapher"
 
 	"github.com/gin-gonic/gin"
 )
 
 var APIConfig = &configurator.Config.API
+
+const (
+	maxNodes = 256
+	maxEdges = 516
+)
 
 func bindJSON(c *gin.Context, obj interface{}) bool {
 	if err := c.BindJSON(&obj); err != nil {
@@ -27,12 +32,16 @@ func GetShortestPathHandler(c *gin.Context) {
 		return
 	}
 
-	if path, distance := grapher.GetShortestPath(graph); path != nil{
+	if path, distance := grapher.GetShortestPath(graph); path != nil {
 		c.JSON(http.StatusOK, gin.H{"path": path, "distance": distance})
 		return
 	}
 
 	c.JSON(http.StatusNotFound, gin.H{"error": logger.ErrNoPathFound})
+}
+
+func ValidateGraph(graph grapher.GraphProject) bool {
+	return len(graph.Nodes) <= maxNodes && len(graph.Edges) <= maxEdges && len(graph.Edges) > 0 && len(graph.Nodes) > 0
 }
 
 func StoreGraphHandler(c *gin.Context) {
@@ -41,12 +50,15 @@ func StoreGraphHandler(c *gin.Context) {
 		return
 	}
 
-	// TO-DO: Validate graph
+	if !ValidateGraph(graph) {
+		c.JSON(http.StatusBadRequest, gin.H{"error": logger.ErrInvalidRequestPayload})
+		return
+	}
+
 	if sortedGraph, graphHash, err := datastorer.SortAndHashGraph(graph); err == nil {
-		Logger.Debug("sortedGraph", sortedGraph, graphHash)
 		if err := datastorer.StoreGraph(sortedGraph, graphHash); err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{
-				"hash": graphHash,
+				"hash":  graphHash,
 				"error": logger.ErrResourceAlreadyExists.Format(graphHash, logger.ResourceGraph),
 			})
 			return
