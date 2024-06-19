@@ -56,7 +56,10 @@
               :opacity="currentTheme === 'dark' ? '0.5' : '0.3'" z-index="1" stroke-dasharray="5,5"
               pointer-events="none" />
 
-            <Toucan v-if="toucanVisible" :x="toucanX" :y="toucanY" />
+            <g :transform="`translate(${toucanX - 24}, ${toucanY - 24})`">
+              <Toucan v-if="toucanVisible" :backgroundColor="currentTheme === 'dark' ? '#212121' : '#fefeff'"
+                :bodyColor="currentTheme === 'dark' ? '#fefeff' : '#212121'" />
+            </g>
           </svg>
 
           <div class="button-group left">
@@ -840,11 +843,13 @@ export default {
           const errorResponse = await response.json();
           if (errorResponse.hash) {
             const graphUrl = `${window.location.origin}?graph=${errorResponse.hash}`;
+
             alert(`Graph already exists. Link to the resource: ${graphUrl}`);
             console.log(`Graph already exists with hash: ${errorResponse.hash}`);
+
             return errorResponse.hash;
           } else {
-            alert(`Failed to save graph: ${errorResponse.error.message}`);
+            alert('Graph couldn\'t be saved');
             throw new Error(`Failed to save graph: ${errorResponse.error.message}`);
           }
         }
@@ -857,11 +862,11 @@ export default {
 
           return responseData.hash;
         } else {
-          alert('Failed to save graph: Missing hash in response');
+          alert('Graph couldn\'t be saved');
           throw new Error('Failed to save graph: Missing hash in response');
         }
       } catch (error) {
-        console.error('Error saving graph:', error);
+        alert('Graph couldn\'t be saved');
         alert(`Error saving graph: ${error.message}`);
 
         throw error;
