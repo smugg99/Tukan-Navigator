@@ -42,7 +42,7 @@ func GetShortestPathHandler(c *gin.Context) {
 }
 
 func ValidateGraph(graph grapher.GraphProject) bool {
-	return len(graph.Nodes) <= maxNodes && len(graph.Edges) <= maxEdges && len(graph.Edges) > 0 && len(graph.Nodes) > 0 && len(graph.Nodes) == 2
+	return len(graph.Nodes) <= maxNodes && len(graph.Edges) <= maxEdges && len(graph.Edges) > 0 && len(graph.Nodes) > 0
 }
 
 func StoreGraphHandler(c *gin.Context) {
