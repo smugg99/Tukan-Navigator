@@ -20,6 +20,7 @@ const (
 
 func bindJSON(c *gin.Context, obj interface{}) bool {
 	if err := c.BindJSON(&obj); err != nil {
+		Logger.Debug(err.Error())
 		c.JSON(http.StatusBadRequest, gin.H{"error": logger.ErrInvalidRequestPayload})
 		return false
 	}
