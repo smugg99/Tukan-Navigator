@@ -52,6 +52,7 @@ func StoreGraphHandler(c *gin.Context) {
 	}
 
 	if !ValidateGraph(graph) {
+		Logger.Debug(graph)
 		c.JSON(http.StatusBadRequest, gin.H{"error": logger.ErrInvalidRequestPayload})
 		return
 	}
