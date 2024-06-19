@@ -31,10 +31,22 @@ export default {
   setup() {
     const theme = useTheme()
     const currentTheme = theme.global.name
-
     const toggleTheme = () => {
-      theme.global.name.value = currentTheme.value === 'light' ? 'dark' : 'light'
+      const newTheme = currentTheme.value === 'light' ? 'dark' : 'light'
+      theme.global.name.value = newTheme
+      localStorage.setItem('user-theme', newTheme)
     }
+    const setInitialTheme = () => {
+      const userTheme = localStorage.getItem('user-theme')
+      if (userTheme) {
+        theme.global.name.value = userTheme
+      } else {
+        const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches
+        theme.global.name.value = prefersDark ? 'dark' : 'light'
+      }
+    }
+
+    setInitialTheme()
 
     return {
       currentTheme,
