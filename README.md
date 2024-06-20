@@ -29,7 +29,7 @@ Tested on Debian 12, you need to have GO (version 1.22.3) with all the dependenc
 	source ~/.bashrc
 	```
 
-### To setup Postgres:
+### To setup Postgres (assuming you didn't change anything in the .env file):
 
 1. Install postgresql:
 	```
