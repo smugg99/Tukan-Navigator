@@ -2,7 +2,7 @@
 
 Tested on Debian 12, you need to have GO (version 1.22.3) with all the dependencies from go.mod file installed and ready to use.
 
-To install some of the dependencies:
+### To install some of the dependencies:
 
 1. Install required packages:
 	```
@@ -29,7 +29,7 @@ To install some of the dependencies:
 	source ~/.bashrc
 	```
 
-To setup Postgres:
+### To setup Postgres:
 
 1. Install postgresql:
 	```
@@ -67,7 +67,7 @@ To setup Postgres:
 	sudo systemctl restart postgresql
 	```
 
-To compile/run the project:
+### To compile/run the project:
 
 1. Clone the repository to your local machine:
 	```
